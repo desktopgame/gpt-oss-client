@@ -100,10 +100,10 @@ async def main() -> None:
                     tools=tools,
                     tool_choice="auto",
                 )
-                print(response.choices[0].message.content)
+                print(f"> {response.choices[0].message.content}")
                 input_list.append(response.choices[0].message)
         else:
-            print(response.choices[0].message.content)
+            print(f"> {response.choices[0].message.content}")
             input_list.append(response.choices[0].message)
 
     for name, mcp_client in mcp_clients.items():
