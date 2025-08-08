@@ -114,6 +114,12 @@ class McpClient:
         response = await self.pipe.receive()
         return self.__mcp_tools_to_openai(response["result"]["tools"])
 
+    async def tools_call(self, name: str, args: Any):
+        params = {"name": name, "arguments": args}
+        data = {"params": params, "method": "tools/call"}
+        await self.pipe.send(data)
+        return await self.pipe.receive()
+
     async def shutdown(self):
         await self.pipe.shutdown()
 

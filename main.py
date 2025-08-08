@@ -27,10 +27,15 @@ async def main() -> None:
             print(f"{name} is started.")
 
     tools = []
+    tool2client: Dict[str, lib.McpClient] = {}
     for name, mcp_client in mcp_clients.items():
         print(await mcp_client.initialize())
         await mcp_client.notify_initialized()
-        tools.extend(await mcp_client.tools_list())
+        tool_list = await mcp_client.tools_list()
+        tools.extend(tool_list)
+
+        for tool_item in tool_list:
+            tool2client[tool_item["function"]["name"]] = mcp_client
 
     print(json.dumps(tools))
     input_list = [{"role": "user", "content": "現在の時刻を教えて"}]
@@ -42,6 +47,14 @@ async def main() -> None:
     )
     print(response)
     print(response.choices)
+
+    tool_calls = response.choices[0].message.tool_calls
+    if tool_calls is not None and len(tool_calls) > 0:
+        for tool_call in tool_calls:
+            fn = tool_call.function
+            args = json.loads(fn.arguments)
+            target_client = tool2client[fn.name]
+            print(await target_client.tools_call(fn.name, args))
 
     for name, mcp_client in mcp_clients.items():
         await mcp_client.shutdown()
