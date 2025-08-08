@@ -7,22 +7,6 @@ from typing import Dict, Any
 client = AsyncOpenAI(api_key="lmstudio", base_url="http://localhost:1234/v1")
 
 
-def mcp_tools_to_openai(mcp_tools):
-    return [
-        {
-            "type": "function",
-            "function": {
-                "name": tool["name"],
-                "description": tool.get("description", ""),
-                "parameters": tool.get(
-                    "inputSchema", {"type": "object", "properties": {}}
-                ),
-            },
-        }
-        for tool in mcp_tools
-    ]
-
-
 async def main() -> None:
     mcp_config: Dict[str, Any] = {}
     try:
@@ -31,48 +15,22 @@ async def main() -> None:
     except Exception:
         pass
 
-    mcp_connections: Dict[str, lib.Connection] = {}
+    mcp_clients: Dict[str, lib.McpClient] = {}
     for name, server in mcp_config["mcpServers"].items():
-        conn = lib.Connection(server)
-        mcp_connections[name] = conn
-        await conn.setup()
+        mcp_client = lib.McpClient(server)
+        mcp_clients[name] = mcp_client
+        await mcp_client.start()
         await asyncio.sleep(1)
-        if conn.is_exited():
+        if mcp_client.is_exited():
             print(f"{name} is exited.")
         else:
             print(f"{name} is started.")
 
     tools = []
-    for name, conn in mcp_connections.items():
-        # initialize
-        await conn.send(
-            {
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": "2025-06-18",
-                    "capabilities": {
-                        "roots": {"listChanged": True},
-                        "sampling": {},
-                        "elicitation": {},
-                        "tools": {},
-                    },
-                    "clientInfo": {
-                        "name": "ExampleClient",
-                        "title": "Example Client Display Name",
-                        "version": "1.0.0",
-                    },
-                },
-            }
-        )
-        print(await conn.receive())
-        # notifications/initialized
-        await conn.send({"method": "notifications/initialized", "params": {}})
-        await asyncio.sleep(1)
-        # tools/list
-        await conn.send({"method": "tools/list", "params": {}})
-        tools_response = await conn.receive()
-        print(tools_response)
-        tools.extend(mcp_tools_to_openai(tools_response["result"]["tools"]))  # noqa
+    for name, mcp_client in mcp_clients.items():
+        print(await mcp_client.initialize())
+        await mcp_client.notify_initialized()
+        tools.extend(await mcp_client.tools_list())
 
     print(json.dumps(tools))
     input_list = [{"role": "user", "content": "現在の時刻を教えて"}]
@@ -85,8 +43,8 @@ async def main() -> None:
     print(response)
     print(response.choices)
 
-    for name, conn in mcp_connections.items():
-        await conn.shutdown()
+    for name, mcp_client in mcp_clients.items():
+        await mcp_client.shutdown()
 
 
 if __name__ == "__main__":

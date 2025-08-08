@@ -4,7 +4,7 @@ import json
 from typing import Any
 
 
-class Connection:
+class StdioPipe:
     def __init__(self, config):
         self.config = config
         self.proc = None
@@ -59,3 +59,63 @@ class Connection:
     def is_exited(self):
         status = self.proc.returncode
         return status is not None
+
+
+class McpClient:
+    def __init__(self, config):
+        self.pipe = StdioPipe(config)
+
+    def __mcp_tools_to_openai(self, mcp_tools):
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool["name"],
+                    "description": tool.get("description", ""),
+                    "parameters": tool.get(
+                        "inputSchema", {"type": "object", "properties": {}}
+                    ),
+                },
+            }
+            for tool in mcp_tools
+        ]
+
+    async def start(self):
+        await self.pipe.setup()
+
+    async def initialize(self):
+        await self.pipe.send(
+            {
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-06-18",
+                    "capabilities": {
+                        "roots": {"listChanged": True},
+                        "sampling": {},
+                        "elicitation": {},
+                        "tools": {},
+                    },
+                    "clientInfo": {
+                        "name": "gpt-oss-client",
+                        "title": "gpt-oss-client",
+                        "version": "0.1.0",
+                    },
+                },
+            }
+        )
+        return await self.pipe.receive()
+
+    async def notify_initialized(self):
+        await self.pipe.send({"method": "notifications/initialized", "params": {}})
+        await asyncio.sleep(1)
+
+    async def tools_list(self):
+        await self.pipe.send({"method": "tools/list", "params": {}})
+        response = await self.pipe.receive()
+        return self.__mcp_tools_to_openai(response["result"]["tools"])
+
+    async def shutdown(self):
+        await self.pipe.shutdown()
+
+    def is_exited(self):
+        return self.pipe.is_exited()
