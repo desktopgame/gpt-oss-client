@@ -104,7 +104,7 @@ class McpClient:
         )
         return await self.pipe.receive()
 
-    async def notify_initialized(self):
+    async def notifications_initialized(self):
         await self.pipe.send({"method": "notifications/initialized", "params": {}})
         await asyncio.sleep(1)
 

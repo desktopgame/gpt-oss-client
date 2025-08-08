@@ -31,7 +31,7 @@ async def main() -> None:
     tool2client: Dict[str, lib.McpClient] = {}
     for name, mcp_client in mcp_clients.items():
         await mcp_client.initialize()
-        await mcp_client.notify_initialized()
+        await mcp_client.notifications_initialized()
         tool_list = await mcp_client.tools_list()
         tools.extend(tool_list)
 
@@ -54,7 +54,13 @@ async def main() -> None:
                 args = json.loads(fn.arguments)
                 target_client = tool2client[fn.name]
                 response = await target_client.tools_call(fn.name, args)
-                input_list.append({"role": "tool", "call_id": tool_call.id, "content": response["result"]["content"]})
+                input_list.append(
+                    {
+                        "role": "tool",
+                        "call_id": tool_call.id,
+                        "content": response["result"]["content"],
+                    }
+                )
                 response = await client.chat.completions.create(
                     model="openai/gpt-oss-120b",
                     messages=input_list,
