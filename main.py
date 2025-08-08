@@ -5,7 +5,24 @@ import sys
 from openai import AsyncOpenAI
 from typing import Dict, Any
 
-client = AsyncOpenAI(api_key="lmstudio", base_url="http://localhost:1234/v1")
+api_key = "lmstudio"
+base_url = "http://localhost:1234/v1"
+system_prompt = "あなたは日本語で話す親切なアシスタントです。"
+
+try:
+    with open("gpt-oss-client.json", "r", encoding="UTF-8") as fp:
+        config = json.load(fp)
+
+        if "api_key" in config:
+            api_key = config["api_key"]
+        if "base_url" in config:
+            base_url = config["base_url"]
+        if "system_prompt" in config:
+            system_prompt = config["system_prompt"]
+except:
+    pass
+
+client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
 
 async def main() -> None:
@@ -38,7 +55,7 @@ async def main() -> None:
         for tool_item in tool_list:
             tool2client[tool_item["function"]["name"]] = mcp_client
 
-    input_list = [{"role": "user", "content": "現在の時刻を教えて"}]
+    input_list = [{"role": "user", "content": system_prompt}]
     response = await client.chat.completions.create(
         model="openai/gpt-oss-120b",
         messages=input_list,
@@ -46,7 +63,23 @@ async def main() -> None:
         tool_choice="auto",
     )
 
+    print("=== チャットを開始します ===")
     while True:
+        next_prompt = sys.stdin.readline().rstrip()
+        if next_prompt.startswith("/"):
+            command = next_prompt[1:].rstrip()
+            if command == "quit" or command == "exit":
+                break
+        input_list.append({"role": "user", "content": next_prompt})
+
+        response = await client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=input_list,
+            tools=tools,
+            tool_choice="auto",
+        )
+        input_list.append(response.choices[0].message)
+
         tool_calls = response.choices[0].message.tool_calls
         if tool_calls is not None and len(tool_calls) > 0:
             for tool_call in tool_calls:
@@ -68,18 +101,10 @@ async def main() -> None:
                     tool_choice="auto",
                 )
                 print(response.choices[0].message.content)
+                input_list.append(response.choices[0].message)
         else:
             print(response.choices[0].message.content)
-
-        next_prompt = sys.stdin.readline().rstrip()
-        input_list.append({"role": "user", "content": next_prompt})
-
-        response = await client.chat.completions.create(
-            model="openai/gpt-oss-120b",
-            messages=input_list,
-            tools=tools,
-            tool_choice="auto",
-        )
+            input_list.append(response.choices[0].message)
 
     for name, mcp_client in mcp_clients.items():
         await mcp_client.shutdown()
