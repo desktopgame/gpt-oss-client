@@ -11,9 +11,13 @@ def mcp_tools_to_openai(mcp_tools):
     return [
         {
             "type": "function",
-            "name": tool["name"],
-            "description": tool.get("description", ""),
-            "parameters": tool.get("inputSchema", {"type": "object", "properties": {}}),
+            "function": {
+                "name": tool["name"],
+                "description": tool.get("description", ""),
+                "parameters": tool.get(
+                    "inputSchema", {"type": "object", "properties": {}}
+                ),
+            },
         }
         for tool in mcp_tools
     ]
@@ -70,11 +74,16 @@ async def main() -> None:
         print(tools_response)
         tools.extend(mcp_tools_to_openai(tools_response["result"]["tools"]))  # noqa
 
-    print(tools)
-    response = await client.responses.create(
-        model="openai/gpt-oss-120b", input="こんにちわ"
+    print(json.dumps(tools))
+    input_list = [{"role": "user", "content": "現在の時刻を教えて"}]
+    response = await client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=input_list,
+        tools=tools,
+        tool_choice="auto",
     )
-    print(response.output_text)
+    print(response)
+    print(response.choices)
 
     for name, conn in mcp_connections.items():
         await conn.shutdown()
