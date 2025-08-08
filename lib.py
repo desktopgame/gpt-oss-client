@@ -8,11 +8,12 @@ class Connection:
     def __init__(self, config):
         self.config = config
         self.proc = None
+        self.id = 0
 
     async def setup(self):
         env = os.environ
         if "env" in self.config:
-            env = { **env, **self.config["env"] }
+            env = {**env, **self.config["env"]}
 
         cwd = None
         if "cwd" in self.config:
@@ -21,13 +22,13 @@ class Connection:
         command = self.config["command"]
         args = self.config["args"]
         self.proc = await asyncio.subprocess.create_subprocess_shell(
-            ' '.join([command, *args]),
+            " ".join([command, *args]),
             shell=True,
             env=env,
             cwd=cwd,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL
+            stderr=asyncio.subprocess.DEVNULL,
         )
 
     async def shutdown(self):
@@ -41,12 +42,16 @@ class Connection:
         return await asyncio.wait_for(stream.readline(), timeout=timeout)
 
     async def send(self, data: Any):
+        data["id"] = self.id
+        data["jsonrpc"] = "2.0"
+        self.id += 1
+
         self.proc.stdin.write(json.dumps(data).encode())
         self.proc.stdin.write("\n".encode())
         await self.proc.stdin.drain()
 
     async def receive(self) -> Any:
-        line = await self._readline()
+        line = await self._readline(1)
         return json.loads(line)
 
     def is_exited(self):

@@ -26,6 +26,28 @@ async def main() -> None:
         else:
             print(f"{name} is started.")
 
+    for name, conn in mcp_connections.items():
+        # initialize
+        await conn.send(
+            {
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {
+                        "roots": {"listChanged": True},
+                        "sampling": {},
+                        "elicitation": {},
+                    },
+                    "clientInfo": {
+                        "name": "ExampleClient",
+                        "title": "Example Client Display Name",
+                        "version": "1.0.0",
+                    },
+                },
+            }
+        )
+        print(await conn.receive())
+
     response = await client.responses.create(
         model="openai/gpt-oss-120b", input="こんにちわ"
     )
