@@ -7,6 +7,18 @@ from typing import Dict, Any
 client = AsyncOpenAI(api_key="lmstudio", base_url="http://localhost:1234/v1")
 
 
+def mcp_tools_to_openai(mcp_tools):
+    return [
+        {
+            "type": "function",
+            "name": tool["name"],
+            "description": tool.get("description", ""),
+            "parameters": tool.get("inputSchema", {"type": "object", "properties": {}}),
+        }
+        for tool in mcp_tools
+    ]
+
+
 async def main() -> None:
     mcp_config: Dict[str, Any] = {}
     try:
@@ -26,17 +38,19 @@ async def main() -> None:
         else:
             print(f"{name} is started.")
 
+    tools = []
     for name, conn in mcp_connections.items():
         # initialize
         await conn.send(
             {
                 "method": "initialize",
                 "params": {
-                    "protocolVersion": "2024-11-05",
+                    "protocolVersion": "2025-06-18",
                     "capabilities": {
                         "roots": {"listChanged": True},
                         "sampling": {},
                         "elicitation": {},
+                        "tools": {},
                     },
                     "clientInfo": {
                         "name": "ExampleClient",
@@ -48,9 +62,15 @@ async def main() -> None:
         )
         print(await conn.receive())
         # notifications/initialized
-        await conn.send({"method": "notifications/initialized"})
-        print(await conn.receive())
+        await conn.send({"method": "notifications/initialized", "params": {}})
+        await asyncio.sleep(1)
+        # tools/list
+        await conn.send({"method": "tools/list", "params": {}})
+        tools_response = await conn.receive()
+        print(tools_response)
+        tools.extend(mcp_tools_to_openai(tools_response["result"]["tools"]))  # noqa
 
+    print(tools)
     response = await client.responses.create(
         model="openai/gpt-oss-120b", input="こんにちわ"
     )

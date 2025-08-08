@@ -42,16 +42,18 @@ class Connection:
         return await asyncio.wait_for(stream.readline(), timeout=timeout)
 
     async def send(self, data: Any):
-        data["id"] = self.id
         data["jsonrpc"] = "2.0"
-        self.id += 1
+        if not data["method"].startswith("notifications"):
+            data["id"] = self.id
+            self.id += 1
 
-        self.proc.stdin.write(json.dumps(data).encode())
-        self.proc.stdin.write("\n".encode())
+        print(json.dumps(data))
+        self.proc.stdin.write(f"{json.dumps(data)}\n".encode())
         await self.proc.stdin.drain()
+        await asyncio.sleep(1)
 
     async def receive(self) -> Any:
-        line = await self._readline(1)
+        line = await self._readline(10)
         return json.loads(line)
 
     def is_exited(self):
