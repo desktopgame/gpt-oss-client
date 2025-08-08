@@ -47,6 +47,9 @@ async def main() -> None:
             }
         )
         print(await conn.receive())
+        # notifications/initialized
+        await conn.send({"method": "notifications/initialized"})
+        print(await conn.receive())
 
     response = await client.responses.create(
         model="openai/gpt-oss-120b", input="こんにちわ"
