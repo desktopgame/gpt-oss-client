@@ -54,7 +54,16 @@ async def main() -> None:
             fn = tool_call.function
             args = json.loads(fn.arguments)
             target_client = tool2client[fn.name]
-            print(await target_client.tools_call(fn.name, args))
+            response = await target_client.tools_call(fn.name, args)
+            input_list.append({"role": "tool", "call_id": tool_call.id, "content": response["result"]["content"]})
+            response = await client.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=input_list,
+                tools=tools,
+                tool_choice="auto",
+            )
+            print(response)
+            print(response.choices)
 
     for name, mcp_client in mcp_clients.items():
         await mcp_client.shutdown()
