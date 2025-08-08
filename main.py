@@ -24,8 +24,8 @@ except:
     pass
 
 client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-spinner_llm = Halo(text='Thinking', spinner='dots')
-spinner_mcp = Halo(text='Running', spinner='dots')
+spinner_llm = Halo(text="Thinking", spinner="dots")
+spinner_mcp = Halo(text="Running", spinner="dots")
 
 
 async def main() -> None:

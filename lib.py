@@ -2,6 +2,7 @@ import asyncio
 import os
 import json
 from typing import Any
+from pathlib import Path
 
 
 class StdioPipe:
@@ -43,7 +44,7 @@ class StdioPipe:
 
     async def send(self, data: Any):
         data["jsonrpc"] = "2.0"
-        if not data["method"].startswith("notifications"):
+        if "method" in data and not data["method"].startswith("notifications"):
             data["id"] = self.id
             self.id += 1
 
@@ -111,6 +112,10 @@ class McpClient:
     async def tools_list(self):
         await self.pipe.send({"method": "tools/list", "params": {}})
         response = await self.pipe.receive()
+        if "method" in response and response["method"] == "roots/list":
+            path_uri = Path("C:\\").as_uri()
+            await self.pipe.send({"roots": [{"name": "C", "uri": path_uri}]})
+            response = await self.pipe.receive()
         return self.__mcp_tools_to_openai(response["result"]["tools"])
 
     async def tools_call(self, name: str, args: Any):
