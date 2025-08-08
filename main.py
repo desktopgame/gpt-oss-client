@@ -4,6 +4,7 @@ import lib
 import sys
 from openai import AsyncOpenAI
 from typing import Dict, Any
+from halo import Halo
 
 api_key = "lmstudio"
 base_url = "http://localhost:1234/v1"
@@ -23,6 +24,8 @@ except:
     pass
 
 client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+spinner_llm = Halo(text='Thinking', spinner='dots')
+spinner_mcp = Halo(text='Running', spinner='dots')
 
 
 async def main() -> None:
@@ -56,12 +59,14 @@ async def main() -> None:
             tool2client[tool_item["function"]["name"]] = mcp_client
 
     input_list = [{"role": "user", "content": system_prompt}]
+    spinner_llm.start()
     response = await client.chat.completions.create(
         model="openai/gpt-oss-120b",
         messages=input_list,
         tools=tools,
         tool_choice="auto",
     )
+    spinner_llm.stop()
 
     print("=== チャットを開始します ===")
     while True:
@@ -72,12 +77,14 @@ async def main() -> None:
                 break
         input_list.append({"role": "user", "content": next_prompt})
 
+        spinner_llm.start()
         response = await client.chat.completions.create(
             model="openai/gpt-oss-120b",
             messages=input_list,
             tools=tools,
             tool_choice="auto",
         )
+        spinner_llm.stop()
         input_list.append(response.choices[0].message)
 
         tool_calls = response.choices[0].message.tool_calls
@@ -86,7 +93,10 @@ async def main() -> None:
                 fn = tool_call.function
                 args = json.loads(fn.arguments)
                 target_client = tool2client[fn.name]
+
+                spinner_mcp.start()
                 response = await target_client.tools_call(fn.name, args)
+                spinner_mcp.stop()
                 input_list.append(
                     {
                         "role": "tool",
@@ -94,12 +104,14 @@ async def main() -> None:
                         "content": response["result"]["content"],
                     }
                 )
+                spinner_mcp.start()
                 response = await client.chat.completions.create(
                     model="openai/gpt-oss-120b",
                     messages=input_list,
                     tools=tools,
                     tool_choice="auto",
                 )
+                spinner_mcp.stop()
                 print(f"> {response.choices[0].message.content}")
                 input_list.append(response.choices[0].message)
         else:
