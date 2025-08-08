@@ -47,7 +47,6 @@ class StdioPipe:
             data["id"] = self.id
             self.id += 1
 
-        print(json.dumps(data))
         self.proc.stdin.write(f"{json.dumps(data)}\n".encode())
         await self.proc.stdin.drain()
         await asyncio.sleep(1)
