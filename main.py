@@ -18,8 +18,18 @@ try:
             api_key = config["api_key"]
         if "base_url" in config:
             base_url = config["base_url"]
-        if "system_prompt" in config:
-            system_prompt = config["system_prompt"]
+except:
+    pass
+
+try:
+    with open("system-prompt.txt", "r", encoding="UTF-8") as fp:
+        system_prompt = fp.read()
+except:
+    pass
+
+try:
+    with open("system-prompt.md", "r", encoding="UTF-8") as fp:
+        system_prompt = fp.read()
 except:
     pass
 
