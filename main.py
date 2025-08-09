@@ -121,14 +121,14 @@ async def main() -> None:
                             "content": response["result"]["content"],
                         }
                     )
-                    spinner_mcp.start()
+                    spinner_llm.start()
                     response = await client.chat.completions.create(
                         model="openai/gpt-oss-120b",
                         messages=input_list,
                         tools=tools,
                         tool_choice="auto",
                     )
-                    spinner_mcp.stop()
+                    spinner_llm.stop()
                     await turn(response)
         else:
             lines = response.choices[0].message.content.splitlines()
