@@ -1,10 +1,14 @@
 import asyncio
 import json
-import lib
 import sys
 from openai import AsyncOpenAI
 from typing import Dict, Any
 from halo import Halo
+
+try:
+    from . import lib
+except ImportError:
+    import lib
 
 api_key = "lmstudio"
 base_url = "http://localhost:1234/v1"
@@ -161,5 +165,10 @@ async def main() -> None:
         await mcp_client.shutdown()
 
 
-if __name__ == "__main__":
+def run():
+    """Entry point for the command line script."""
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    run()
