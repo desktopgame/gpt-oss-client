@@ -6,7 +6,7 @@ function calling に対応しています。
 uv を使ってインストールできます。
 ````
 cd gpt-oss-client
-uv tool install
+uv tool install .
 ````
 
 ## How to use
@@ -14,6 +14,11 @@ uv tool install
 ````
 gpt-oss-client
 ````
+
+終了するには特殊な構文でコマンドを実行します。
+```
+/quit
+```
 
 ## Configuration
 gpt-oss-client が起動されるディレクトリに設定ファイルを置くことでそちらを読んで動作します。  
