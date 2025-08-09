@@ -69,6 +69,57 @@ async def main() -> None:
     spinner_llm.stop()
 
     print("=== チャットを開始します ===")
+
+    async def turn(response):
+        input_list.append(response.choices[0].message)
+        tool_calls = response.choices[0].message.tool_calls
+        if tool_calls is not None and len(tool_calls) > 0:
+            for tool_call in tool_calls:
+                fn = tool_call.function
+                args = json.loads(fn.arguments)
+                target_client = tool2client[fn.name]
+
+                spinner_mcp.start()
+                response = await target_client.tools_call(fn.name, args)
+                spinner_mcp.stop()
+                print(response)
+                if "method" in response and response["method"] == "notifications/cancelled":
+                    input_list.append(
+                        {
+                            "role": "tool",
+                            "call_id": tool_call.id,
+                            "content": f"failure a {fn.name} execute",
+                        }
+                    )
+                    spinner_mcp.start()
+                    response = await client.chat.completions.create(
+                        model="openai/gpt-oss-120b",
+                        messages=input_list,
+                        tools=tools,
+                        tool_choice="auto",
+                    )
+                    spinner_mcp.stop()
+                    await turn(response)
+                else:
+                    input_list.append(
+                        {
+                            "role": "tool",
+                            "call_id": tool_call.id,
+                            "content": response["result"]["content"],
+                        }
+                    )
+                    spinner_mcp.start()
+                    response = await client.chat.completions.create(
+                        model="openai/gpt-oss-120b",
+                        messages=input_list,
+                        tools=tools,
+                        tool_choice="auto",
+                    )
+                    spinner_mcp.stop()
+                    await turn(response)
+        else:
+            print(f"> {response.choices[0].message.content}")
+
     while True:
         next_prompt = sys.stdin.readline().rstrip()
         if next_prompt.startswith("/"):
@@ -85,38 +136,7 @@ async def main() -> None:
             tool_choice="auto",
         )
         spinner_llm.stop()
-        input_list.append(response.choices[0].message)
-
-        tool_calls = response.choices[0].message.tool_calls
-        if tool_calls is not None and len(tool_calls) > 0:
-            for tool_call in tool_calls:
-                fn = tool_call.function
-                args = json.loads(fn.arguments)
-                target_client = tool2client[fn.name]
-
-                spinner_mcp.start()
-                response = await target_client.tools_call(fn.name, args)
-                spinner_mcp.stop()
-                input_list.append(
-                    {
-                        "role": "tool",
-                        "call_id": tool_call.id,
-                        "content": response["result"]["content"],
-                    }
-                )
-                spinner_mcp.start()
-                response = await client.chat.completions.create(
-                    model="openai/gpt-oss-120b",
-                    messages=input_list,
-                    tools=tools,
-                    tool_choice="auto",
-                )
-                spinner_mcp.stop()
-                print(f"> {response.choices[0].message.content}")
-                input_list.append(response.choices[0].message)
-        else:
-            print(f"> {response.choices[0].message.content}")
-            input_list.append(response.choices[0].message)
+        await turn(response)
 
     for name, mcp_client in mcp_clients.items():
         await mcp_client.shutdown()
