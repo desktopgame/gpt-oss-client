@@ -81,6 +81,43 @@ async def main() -> None:
     )
     spinner_load.stop()
 
+    async def tool_use(response, tool_call):
+        fn = tool_call.function
+        if "method" in response and response["method"] == "notifications/cancelled":
+            input_list.append(
+                {
+                    "role": "tool",
+                    "call_id": tool_call.id,
+                    "content": f"failure a {fn.name} execute",
+                }
+            )
+            spinner_mcp.start()
+            response = await client.chat.completions.create(
+                model=model,
+                messages=input_list,
+                tools=tools,
+                tool_choice="auto",
+            )
+            spinner_mcp.stop()
+            return response
+        else:
+            input_list.append(
+                {
+                    "role": "tool",
+                    "call_id": tool_call.id,
+                    "content": response["result"]["content"],
+                }
+            )
+            spinner_llm.start()
+            response = await client.chat.completions.create(
+                model=model,
+                messages=input_list,
+                tools=tools,
+                tool_choice="auto",
+            )
+            spinner_llm.stop()
+            return response
+
     async def turn(response):
         input_list.append(response.choices[0].message)
         tool_calls = response.choices[0].message.tool_calls
@@ -93,43 +130,7 @@ async def main() -> None:
                 spinner_mcp.start()
                 response = await target_client.tools_call(fn.name, args)
                 spinner_mcp.stop()
-                if (
-                    "method" in response
-                    and response["method"] == "notifications/cancelled"
-                ):
-                    input_list.append(
-                        {
-                            "role": "tool",
-                            "call_id": tool_call.id,
-                            "content": f"failure a {fn.name} execute",
-                        }
-                    )
-                    spinner_mcp.start()
-                    response = await client.chat.completions.create(
-                        model=model,
-                        messages=input_list,
-                        tools=tools,
-                        tool_choice="auto",
-                    )
-                    spinner_mcp.stop()
-                    await turn(response)
-                else:
-                    input_list.append(
-                        {
-                            "role": "tool",
-                            "call_id": tool_call.id,
-                            "content": response["result"]["content"],
-                        }
-                    )
-                    spinner_llm.start()
-                    response = await client.chat.completions.create(
-                        model=model,
-                        messages=input_list,
-                        tools=tools,
-                        tool_choice="auto",
-                    )
-                    spinner_llm.stop()
-                    await turn(response)
+                await turn(tool_use(response, tool_call))
         else:
             lines = response.choices[0].message.content.splitlines()
             lines = map(lambda line: f"> {line}", lines)
