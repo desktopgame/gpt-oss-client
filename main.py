@@ -93,7 +93,10 @@ async def main() -> None:
                 response = await target_client.tools_call(fn.name, args)
                 spinner_mcp.stop()
                 print(response)
-                if "method" in response and response["method"] == "notifications/cancelled":
+                if (
+                    "method" in response
+                    and response["method"] == "notifications/cancelled"
+                ):
                     input_list.append(
                         {
                             "role": "tool",
@@ -128,7 +131,10 @@ async def main() -> None:
                     spinner_mcp.stop()
                     await turn(response)
         else:
-            print(f"> {response.choices[0].message.content}")
+            lines = response.choices[0].message.content.splitlines()
+            lines = map(lambda line: f"> {line}", lines)
+            lines = "\n".join(lines)
+            print(lines)
 
     while True:
         next_prompt = sys.stdin.readline().rstrip()
