@@ -41,6 +41,7 @@ except:
     pass
 
 client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+spinner_load = Halo(text="Loading", spinner="dots")
 spinner_llm = Halo(text="Thinking", spinner="dots")
 spinner_mcp = Halo(text="Running", spinner="dots")
 
@@ -59,6 +60,7 @@ async def main() -> None:
         mcp_clients[name] = mcp_client
         await mcp_client.start()
 
+    spinner_load.start()
     tools = []
     tool2client: Dict[str, lib.McpClient] = {}
     for name, mcp_client in mcp_clients.items():
@@ -71,16 +73,13 @@ async def main() -> None:
             tool2client[tool_item["function"]["name"]] = mcp_client
 
     input_list = [{"role": "user", "content": system_prompt}]
-    spinner_llm.start()
     response = await client.chat.completions.create(
         model=model,
         messages=input_list,
         tools=tools,
         tool_choice="auto",
     )
-    spinner_llm.stop()
-
-    print("=== チャットを開始します ===")
+    spinner_load.stop()
 
     async def turn(response):
         input_list.append(response.choices[0].message)
