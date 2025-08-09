@@ -13,6 +13,7 @@ except ImportError:
 api_key = "lmstudio"
 base_url = "http://localhost:1234/v1"
 model = "openai/gpt-oss-120b"
+auto_approve = False
 system_prompt = "あなたは日本語で話す親切なアシスタントです。"
 
 try:
@@ -25,6 +26,8 @@ try:
             base_url = config["base_url"]
         if "model" in config:
             model = config["model"]
+        if "auto_approve" in config:
+            auto_approve = config["auto_approve"]
 except:
     pass
 
@@ -146,7 +149,9 @@ async def main() -> None:
                     return
                 target_client = tool2client[fn.name]
 
-                confirm_result = input(f"$ want to use tool of `{fn.name}`, are you ok? [y/n]: ").lower()
+                confirm_result = "y"
+                if not auto_approve:
+                    confirm_result = input(f"$ want to use tool of `{fn.name}`, are you ok? [y/n]: ").lower() # noqa
                 if confirm_result == "y" or confirm_result == "yes":
                     spinner_mcp.start()
                     response = await target_client.tools_call(fn.name, args)
