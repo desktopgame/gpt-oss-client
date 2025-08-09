@@ -8,6 +8,7 @@ from halo import Halo
 
 api_key = "lmstudio"
 base_url = "http://localhost:1234/v1"
+model = "openai/gpt-oss-120b"
 system_prompt = "あなたは日本語で話す親切なアシスタントです。"
 
 try:
@@ -18,6 +19,8 @@ try:
             api_key = config["api_key"]
         if "base_url" in config:
             base_url = config["base_url"]
+        if "model" in config:
+            model = config["model"]
 except:
     pass
 
@@ -71,7 +74,7 @@ async def main() -> None:
     input_list = [{"role": "user", "content": system_prompt}]
     spinner_llm.start()
     response = await client.chat.completions.create(
-        model="openai/gpt-oss-120b",
+        model=model,
         messages=input_list,
         tools=tools,
         tool_choice="auto",
@@ -106,7 +109,7 @@ async def main() -> None:
                     )
                     spinner_mcp.start()
                     response = await client.chat.completions.create(
-                        model="openai/gpt-oss-120b",
+                        model=model,
                         messages=input_list,
                         tools=tools,
                         tool_choice="auto",
@@ -123,7 +126,7 @@ async def main() -> None:
                     )
                     spinner_llm.start()
                     response = await client.chat.completions.create(
-                        model="openai/gpt-oss-120b",
+                        model=model,
                         messages=input_list,
                         tools=tools,
                         tool_choice="auto",
@@ -146,7 +149,7 @@ async def main() -> None:
 
         spinner_llm.start()
         response = await client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model=model,
             messages=input_list,
             tools=tools,
             tool_choice="auto",
