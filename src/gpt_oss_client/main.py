@@ -79,6 +79,7 @@ async def main() -> None:
         tools=tools,
         tool_choice="auto",
     )
+    input_list.append(response.choices[0].message)
     spinner_load.stop()
 
     async def tool_use(response, tool_call):
