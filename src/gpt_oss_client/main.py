@@ -126,12 +126,49 @@ async def main() -> None:
             for tool_call in tool_calls:
                 fn = tool_call.function
                 args = json.loads(fn.arguments)
+                if fn.name not in tool2client:
+                    input_list.append(
+                        {
+                            "role": "system",
+                            "call_id": tool_call.id,
+                            "content": f"{fn.name} is not found",
+                        }
+                    )
+                    spinner_llm.start()
+                    response = await client.chat.completions.create(
+                        model=model,
+                        messages=input_list,
+                        tools=tools,
+                        tool_choice="auto",
+                    )
+                    spinner_llm.stop()
+                    await turn(response)
+                    return
                 target_client = tool2client[fn.name]
 
-                spinner_mcp.start()
-                response = await target_client.tools_call(fn.name, args)
-                spinner_mcp.stop()
-                await turn(tool_use(response, tool_call))
+                confirm_result = input(f"$ want to use tool of `{fn.name}`, are you ok? [y/n]: ").lower()
+                if confirm_result == "y" or confirm_result == "yes":
+                    spinner_mcp.start()
+                    response = await target_client.tools_call(fn.name, args)
+                    spinner_mcp.stop()
+                    await turn(await tool_use(response, tool_call))
+                else:
+                    input_list.append(
+                        {
+                            "role": "user",
+                            "call_id": tool_call.id,
+                            "content": f"user rejected a {fn.name} execute",
+                        }
+                    )
+                    spinner_llm.start()
+                    response = await client.chat.completions.create(
+                        model=model,
+                        messages=input_list,
+                        tools=tools,
+                        tool_choice="auto",
+                    )
+                    spinner_llm.stop()
+                    await turn(response)
         else:
             lines = response.choices[0].message.content.splitlines()
             lines = map(lambda line: f"> {line}", lines)
