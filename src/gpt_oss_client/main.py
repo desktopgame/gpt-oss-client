@@ -58,11 +58,6 @@ async def main() -> None:
         mcp_client = lib.McpClient(server)
         mcp_clients[name] = mcp_client
         await mcp_client.start()
-        await asyncio.sleep(1)
-        if mcp_client.is_exited():
-            print(f"{name} is exited.")
-        else:
-            print(f"{name} is started.")
 
     tools = []
     tool2client: Dict[str, lib.McpClient] = {}
@@ -99,7 +94,6 @@ async def main() -> None:
                 spinner_mcp.start()
                 response = await target_client.tools_call(fn.name, args)
                 spinner_mcp.stop()
-                print(response)
                 if (
                     "method" in response
                     and response["method"] == "notifications/cancelled"
