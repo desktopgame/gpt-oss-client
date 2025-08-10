@@ -117,7 +117,7 @@ class McpClient:
         await self.pipe.send({"method": "tools/list", "params": {}})
         response = await self.pipe.receive()
         if "method" in response and response["method"] == "roots/list":
-            path_uri = Path("C:\\").as_uri()
+            path_uri = Path(os.path.abspath(os.sep)).as_uri()
             await self.pipe.send({"roots": [{"name": "C", "uri": path_uri}]})
             response = await self.pipe.receive()
         return self.__mcp_tools_to_openai(response["result"]["tools"])
