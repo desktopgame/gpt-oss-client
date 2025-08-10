@@ -14,6 +14,7 @@ api_key = "lmstudio"
 base_url = "http://localhost:1234/v1"
 model = "openai/gpt-oss-120b"
 auto_approve = False
+context_length = 0
 system_prompt = "あなたは日本語で話す親切なアシスタントです。"
 
 try:
@@ -28,6 +29,8 @@ try:
             model = config["model"]
         if "auto_approve" in config:
             auto_approve = config["auto_approve"]
+        if "context_length" in config:
+            context_length = config["context_length"]
 except:
     pass
 
@@ -44,6 +47,7 @@ except:
     pass
 
 client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+counter = lib.TokenCounter("gpt-oss-")
 spinner_load = Halo(text="Loading", spinner="dots")
 spinner_llm = Halo(text="Thinking", spinner="dots")
 spinner_mcp = Halo(text="Running", spinner="dots")
@@ -82,7 +86,7 @@ async def main() -> None:
         tools=tools,
         tool_choice="auto",
     )
-    input_list.append(response.choices[0].message)
+    input_list.append(response.choices[0].message.to_dict())
     spinner_load.stop()
 
     async def tool_use(response, tool_call):
@@ -123,7 +127,7 @@ async def main() -> None:
             return response
 
     async def turn(response):
-        input_list.append(response.choices[0].message)
+        input_list.append(response.choices[0].message.to_dict())
         tool_calls = response.choices[0].message.tool_calls
         if tool_calls is not None and len(tool_calls) > 0:
             for tool_call in tool_calls:
@@ -179,6 +183,11 @@ async def main() -> None:
             lines = map(lambda line: f"> {line}", lines)
             lines = "\n".join(lines)
             print(lines)
+
+            if context_length > 0:
+                tokens = counter.count(input_list)
+                parcent = (tokens / context_length)
+                print(f"# token usage: {tokens}/{context_length} {parcent:.2%}")
 
     while True:
         next_prompt = sys.stdin.readline().rstrip()

@@ -1,6 +1,7 @@
 import asyncio
 import os
 import json
+import tiktoken
 from typing import Any
 from pathlib import Path
 
@@ -132,3 +133,17 @@ class McpClient:
 
     def is_exited(self):
         return self.pipe.is_exited()
+
+
+class TokenCounter:
+    def __init__(self, model: str):
+        self.enc = tiktoken.encoding_for_model(model)
+
+    def count(self, messages):
+        total = 0
+        for m in messages:
+            text = m["content"]
+            if isinstance(text, dict):
+                text = text["text"]
+            total += len(self.enc.encode(text))
+        return total
