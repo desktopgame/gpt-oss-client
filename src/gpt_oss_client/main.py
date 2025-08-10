@@ -58,6 +58,9 @@ async def main() -> None:
             parcent = tokens / context_length
             print(f"# token usage: {tokens}/{context_length} {parcent:.2%}")
 
+    def handle_use_proc(name):
+        return input(f"$ want to use tool of `{name}`, are you ok? [y/n]: ")
+
     chat_manager = lib.ChatManager(
         client,
         model,
@@ -69,6 +72,7 @@ async def main() -> None:
     chat_manager.handle_llm_proc = handle_llm_proc
     chat_manager.handle_mcp_proc = handle_mcp_proc
     chat_manager.handle_msg_proc = handle_msg_proc
+    chat_manager.handle_use_proc = handle_use_proc
 
     spinner_load.start()
     await chat_manager.setup()

@@ -246,6 +246,7 @@ class ChatManager:
         self.handle_llm_proc = nop
         self.handle_mcp_proc = nop
         self.handle_msg_proc = nop
+        self.handle_use_proc = nop
 
     async def setup(self):
         self.tools = []
@@ -334,9 +335,7 @@ class ChatManager:
 
                 confirm_result = "y"
                 if not self.auto_approve:
-                    confirm_result = input(
-                        f"$ want to use tool of `{fn.name}`, are you ok? [y/n]: "
-                    ).lower()  # noqa
+                    confirm_result = self.handle_use_procc(fn.name).lower()  # noqa
                 if confirm_result == "y" or confirm_result == "yes":
                     self.handle_mcp_proc("begin")
                     response = await target_client.tools_call(fn.name, args)
