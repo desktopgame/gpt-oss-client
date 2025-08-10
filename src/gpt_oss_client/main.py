@@ -209,9 +209,15 @@ async def main() -> None:
     async def handle_use_proc(name):
         if edit_mode:
             fut = asyncio.get_event_loop().create_future()
+            submitted = False
 
             def accept(_buf):
-                fut.set_result(minibuf.text)
+                nonlocal submitted
+                if not submitted:
+                    fut.set_result(minibuf.text)
+                    submitted = True
+                else:
+                    send_mode("Please wait a moment...")
 
             tmp = minibuf.accept_handler
             minibuf.accept_handler = accept
