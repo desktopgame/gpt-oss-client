@@ -15,7 +15,7 @@ config.update()
 
 api_key = config.api_key
 base_url = config.base_url
-model = config.base_url
+model = config.model
 auto_approve = config.auto_approve
 context_length = config.context_length
 system_prompt = config.system_prompt
