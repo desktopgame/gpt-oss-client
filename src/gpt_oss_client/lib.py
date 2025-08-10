@@ -94,13 +94,10 @@ class StdioPipe:
         )
 
     async def shutdown(self):
-        self.proc.stdin.close()
         try:
-            while not self.proc.stdout.at_eof():
-                await self._readline(1)
+            await self.proc.communicate()
         except Exception:
-            pass
-        self.proc.kill()
+            self.proc.kill()
 
     async def _readline(self, timeout: float):
         stream = self.proc.stdout
