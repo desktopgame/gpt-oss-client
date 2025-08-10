@@ -142,8 +142,19 @@ class TokenCounter:
     def count(self, messages):
         total = 0
         for m in messages:
-            text = m["content"]
-            if isinstance(text, dict):
-                text = text["text"]
-            total += len(self.enc.encode(text))
+            if "content" in m:
+                text = m["content"]
+                if text is not None:
+                    if isinstance(text, list):
+                        text = "".join(part.get("text","") for part in text if isinstance(part, dict))
+                    total += len(self.enc.encode(text))
+            if "tool_calls" in m:
+                tool_calls = m["tool_calls"]
+                if tool_calls is not None:
+                    for tool_call in tool_calls:
+                        total += len(self.enc.encode(tool_call.get("id", "")))
+                        total += len(self.enc.encode(tool_call.get("type", "")))
+                        function = tool_call.get("function", {})
+                        total += len(self.enc.encode(function.get("name", "")))
+                        total += len(self.enc.encode(function.get("arguments", "")))
         return total
