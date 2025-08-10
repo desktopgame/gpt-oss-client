@@ -28,7 +28,6 @@ class Config:
             load_at = Path.home().joinpath(name)
             with open(load_at, "r", encoding="UTF-8") as fp:
                 on_load(fp)
-            return
         except:
             pass
         try:
