@@ -58,7 +58,7 @@ class Config:
         self.mcp = json.load(fp)
 
         def expand_macro(s: str) -> str:
-            return pystache.render(s, {"cwd", os.getcwd()})
+            return pystache.render(s, {"cwd": os.getcwd()})
 
         if "mcpServers" in self.mcp:
             servers = self.mcp["mcpServers"]
