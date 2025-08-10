@@ -38,57 +38,18 @@ edit_mode = False
 
 
 async def main() -> None:
+    global edit_mode
     # init chat system
+
     mcp_clients: Dict[str, lib.McpClient] = {}
     for name, server in mcp_config["mcpServers"].items():
         mcp_client = lib.McpClient(server)
         mcp_clients[name] = mcp_client
         await mcp_client.start()
 
-    def handle_llm_proc(method: str):
-        if edit_mode:
-            return
-        if method == "begin":
-            spinner_llm.start()
-        elif method == "end":
-            spinner_llm.stop()
-
-    def handle_mcp_proc(method: str):
-        if edit_mode:
-            return
-        if method == "begin":
-            spinner_mcp.start()
-        elif method == "end":
-            spinner_mcp.stop()
-
-    def handle_msg_proc(response):
-        lines = response.choices[0].message.content.splitlines()
-        lines = map(lambda line: f"> {line}", lines)
-        lines = "\n".join(lines)
-        if edit_mode:
-            editor.buffer.insert_text(lines)
-
-            update_modeline()
-            modeline.text = "Done."
-            get_app().invalidate()
-        else:
-            print(lines)
-
-            if context_length > 0:
-                tokens = chat_manager.token_count()
-                parcent = tokens / context_length
-                print(f"# token usage: {tokens}/{context_length} {parcent:.2%}")
-
-    def handle_use_proc(name):
-        return input(f"$ want to use tool of `{name}`, are you ok? [y/n]: ")
-
     chat_manager = lib.ChatManager(
         client, model, system_prompt, context_length, mcp_clients, auto_approve
     )
-    chat_manager.handle_llm_proc = handle_llm_proc
-    chat_manager.handle_mcp_proc = handle_mcp_proc
-    chat_manager.handle_msg_proc = handle_msg_proc
-    chat_manager.handle_use_proc = handle_use_proc
 
     # init editor
 
@@ -168,6 +129,51 @@ async def main() -> None:
     app = Application(
         layout=Layout(root), key_bindings=kb, full_screen=True, style=style
     )
+
+    # setup
+
+    def handle_llm_proc(method: str):
+        if edit_mode:
+            return
+        if method == "begin":
+            spinner_llm.start()
+        elif method == "end":
+            spinner_llm.stop()
+
+    def handle_mcp_proc(method: str):
+        if edit_mode:
+            return
+        if method == "begin":
+            spinner_mcp.start()
+        elif method == "end":
+            spinner_mcp.stop()
+
+    def handle_msg_proc(response):
+        lines = response.choices[0].message.content.splitlines()
+        lines = map(lambda line: f"> {line}", lines)
+        lines = "\n".join(lines)
+        if edit_mode:
+            editor.buffer.insert_text(lines)
+
+            update_modeline()
+            modeline.text = "Done."
+            get_app().invalidate()
+        else:
+            print(lines)
+
+            if context_length > 0:
+                tokens = chat_manager.token_count()
+                parcent = tokens / context_length
+                print(f"# token usage: {tokens}/{context_length} {parcent:.2%}")
+
+    def handle_use_proc(name):
+        return input(f"$ want to use tool of `{name}`, are you ok? [y/n]: ")
+
+    chat_manager.handle_llm_proc = handle_llm_proc
+    chat_manager.handle_mcp_proc = handle_mcp_proc
+    chat_manager.handle_msg_proc = handle_msg_proc
+    chat_manager.handle_use_proc = handle_use_proc
+
     # start
 
     spinner_load.start()
