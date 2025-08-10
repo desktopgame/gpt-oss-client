@@ -166,7 +166,22 @@ async def main() -> None:
                 parcent = tokens / context_length
                 print(f"# token usage: {tokens}/{context_length} {parcent:.2%}")
 
-    def handle_use_proc(name):
+    async def handle_use_proc(name):
+        if edit_mode:
+            fut = asyncio.get_event_loop().create_future()
+
+            def accept(_buf):
+                fut.set_result(minibuf.text)
+
+            tmp = minibuf.accept_handler
+            minibuf.accept_handler = accept
+            app.layout.focus(minibuf)
+
+            try:
+                minibuf.text = f"want to use tool of `{name}`, are you ok? [y/n]"
+                return await fut
+            finally:
+                minibuf.accept_handler = tmp
         return input(f"$ want to use tool of `{name}`, are you ok? [y/n]: ")
 
     chat_manager.handle_llm_proc = handle_llm_proc
