@@ -102,7 +102,7 @@ class McpClient:
                     "clientInfo": {
                         "name": "gpt-oss-client",
                         "title": "gpt-oss-client",
-                        "version": "0.2.0",
+                        "version": "0.3.0",
                     },
                 },
             }
