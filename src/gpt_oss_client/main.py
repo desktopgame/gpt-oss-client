@@ -19,6 +19,7 @@ model = config.base_url
 auto_approve = config.auto_approve
 context_length = config.context_length
 system_prompt = config.system_prompt
+mcp_config = config.mcp
 
 client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 counter = lib.TokenCounter("gpt-oss-")
@@ -28,13 +29,6 @@ spinner_mcp = Halo(text="Running", spinner="dots")
 
 
 async def main() -> None:
-    mcp_config: Dict[str, Any] = {}
-    try:
-        with open("mcp.json", "r", encoding="UTF-8") as fp:
-            mcp_config = json.load(fp)
-    except Exception:
-        pass
-
     mcp_clients: Dict[str, lib.McpClient] = {}
     for name, server in mcp_config["mcpServers"].items():
         mcp_client = lib.McpClient(server)

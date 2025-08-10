@@ -14,11 +14,13 @@ class Config:
         self.auto_approve = False
         self.context_length = 0
         self.system_prompt = "あなたは日本語で話す親切なアシスタントです。"
+        self.mcp = {}
 
     def update(self):
         self.__load("gpt-oss-client.json", self.__hook_basic)
         self.__load("system-prompt.txt", self.__hook_system_prompt)
         self.__load("system-prompt.md", self.__hook_system_prompt)
+        self.__load("mcp.json", self.__hook_mcp)
 
     def __load(self, name: str, on_load):
         try:
@@ -50,6 +52,9 @@ class Config:
 
     def __hook_system_prompt(self, fp):
         self.system_prompt = fp.read()
+
+    def __hook_mcp(self, fp):
+        self.mcp = json.load(fp)
 
 
 class StdioPipe:
