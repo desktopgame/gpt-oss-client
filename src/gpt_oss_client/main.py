@@ -178,7 +178,7 @@ async def main() -> None:
             app.layout.focus(minibuf)
 
             try:
-                minibuf.text = f"want to use tool of `{name}`, are you ok? [y/n]"
+                modeline.text = f"want to use tool of `{name}`, are you ok? [y/n]"
                 return await fut
             finally:
                 minibuf.accept_handler = tmp
