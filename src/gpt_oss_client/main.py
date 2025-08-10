@@ -36,10 +36,12 @@ spinner_llm = Halo(text="Thinking", spinner="dots")
 spinner_mcp = Halo(text="Running", spinner="dots")
 
 edit_mode = False
+marker_id = 0
 
 
 async def main() -> None:
     global edit_mode
+    global marker_id
 
     # init common
     
@@ -99,9 +101,15 @@ async def main() -> None:
     # init editor
 
     async def chat_submit(message: str):
+        global marker_id
+        editor.buffer.insert_line_below()
+        editor.buffer.insert_text(f"<chat_response_is_here:{marker_id}>")
+        editor.buffer.insert_line_below()
+
         minibuf.buffer.read_only = to_filter(True)
         minibuf.window.style = "class:minibuf.disabled"
         await chat_manager.post(message)
+        marker_id += 1
         minibuf.buffer.read_only = to_filter(False)
         minibuf.window.style = "class:minibuf"
 
@@ -130,6 +138,10 @@ async def main() -> None:
     @kb.add("c-x", "c-o")
     def _(e):
         e.app.layout.focus(editor)
+
+    @kb.add("c-x", "c-x")
+    def _(e):
+        asyncio.create_task(chat_submit(editor.buffer.document.current_line)) # noqa
 
     @kb.add("c-g")
     def _(e):
@@ -182,8 +194,14 @@ async def main() -> None:
         lines = map(lambda line: f"> {line}", lines)
         lines = "\n".join(lines)
         if edit_mode:
-            editor.buffer.insert_text(f"{lines}\n")
-            get_app().invalidate()
+            ph = f"<chat_response_is_here:{marker_id}>"
+            buf = editor.buffer
+            text = buf.text
+            idx = text.find(ph)
+            if idx >= 0:
+                new_text = text[:idx] + f"{lines}\n" + text[idx+len(ph):]
+                buf.text = new_text
+                get_app().invalidate()
 
             if context_length > 0:
                 tokens = chat_manager.token_count()
