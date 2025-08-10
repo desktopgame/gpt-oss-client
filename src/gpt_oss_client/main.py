@@ -239,9 +239,12 @@ async def main() -> None:
                     submitted = True
                 else:
                     send_mode("Please wait a moment...")
-
-            tmp = minibuf.accept_handler
+            tmp_accept_handler = minibuf.accept_handler
+            tmp_read_only = minibuf.buffer.read_only
+            tmp_style = minibuf.window.style
             minibuf.accept_handler = accept
+            minibuf.buffer.read_only = to_filter(False)
+            minibuf.window.style = "class:minibuf"
             app.layout.focus(minibuf)
 
             try:
@@ -255,7 +258,9 @@ async def main() -> None:
                 ticket.set_result(None)
                 return result
             finally:
-                minibuf.accept_handler = tmp
+                minibuf.accept_handler = tmp_accept_handler
+                minibuf.buffer.read_only = tmp_read_only
+                minibuf.window.style = tmp_style
         return input(f"$ want to use tool of `{name}`, are you ok? [y/n]: ")
 
     chat_manager.handle_llm_proc = handle_llm_proc
