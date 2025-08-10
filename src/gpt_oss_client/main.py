@@ -96,8 +96,6 @@ async def main() -> None:
         client, model, system_prompt, context_length, mcp_clients, auto_approve
     )
 
-    chat_queue = asyncio.Queue()
-
     # init editor
 
     async def chat_submit(message: str):
