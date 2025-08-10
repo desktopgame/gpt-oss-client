@@ -155,10 +155,6 @@ async def main() -> None:
         minibuf.buffer.reset()
         e.app.invalidate()
 
-    @kb.add("c-c")
-    def _(e):
-        e.app.exit()
-
     root = HSplit(
         [
             editor,
