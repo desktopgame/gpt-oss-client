@@ -39,20 +39,9 @@ edit_mode = False
 
 async def main() -> None:
     global edit_mode
-    # init chat system
 
-    mcp_clients: Dict[str, lib.McpClient] = {}
-    for name, server in mcp_config["mcpServers"].items():
-        mcp_client = lib.McpClient(server)
-        mcp_clients[name] = mcp_client
-        await mcp_client.start()
-
-    chat_manager = lib.ChatManager(
-        client, model, system_prompt, context_length, mcp_clients, auto_approve
-    )
-
-    # init editor
-
+    # init common
+    
     style = Style.from_dict(
         {
             "gutter": "bg:#222222 fg:#888888",
@@ -69,24 +58,49 @@ async def main() -> None:
         get_line_prefix=line_prefix,
     )
     minibuf = TextArea(height=1, multiline=False, style="class:minibuf")
-    modeline = TextArea(height=1, style="class:modeline", focusable=False)
+    modeline = TextArea(height=1, style="class:modeline", focusable=False)    
+    modequeue = asyncio.Queue()
+
+    async def send_mode(mode: Any):
+        asyncio.create_task(modequeue.put(mode))
+
+    async def poll_mode():
+        try:
+            while True:
+                mode = await modequeue.get()
+                modeline.text = mode["text"]
+                if "ticket" in mode:
+                    await mode["ticket"]
+                else:
+                    await asyncio.sleep(mode["duration"])
+        except Exception:
+            pass
+
+    asyncio.create_task(poll_mode())
+
+    # init chat system
+
+    mcp_clients: Dict[str, lib.McpClient] = {}
+    for name, server in mcp_config["mcpServers"].items():
+        mcp_client = lib.McpClient(server)
+        mcp_clients[name] = mcp_client
+        await mcp_client.start()
+
+    chat_manager = lib.ChatManager(
+        client, model, system_prompt, context_length, mcp_clients, auto_approve
+    )
+
+    # init editor
 
     def line_prefix(line_no: int, wrap_count: int) -> list[tuple[str, str]]:
         num = f"{line_no + 1:>4} "
         return [("class:gutter", num)]
-
-    def update_modeline(name="(unnamed)"):
-        doc = editor.buffer.document
-        row, col = doc.cursor_position_row + 1, doc.cursor_position_col + 1
-        pct = int(row / max(1, doc.line_count) * 100)
-        modeline.text = f"  {name}  {row}:{col}  {pct}%  UTF-8  "
 
     async def handle_submit(prompt: str):
         if len(prompt.strip()) == 0:
             return
 
         minibuf.buffer.reset()
-        modeline.text = "Thinking..."
         get_app().invalidate()
 
         await chat_manager.post(prompt)
@@ -155,9 +169,6 @@ async def main() -> None:
         lines = "\n".join(lines)
         if edit_mode:
             editor.buffer.insert_text(lines)
-
-            update_modeline()
-            modeline.text = "Done."
             get_app().invalidate()
         else:
             print(lines)
@@ -179,8 +190,15 @@ async def main() -> None:
             app.layout.focus(minibuf)
 
             try:
-                modeline.text = f"want to use tool of `{name}`, are you ok? [y/n]"
-                return await fut
+                ticket = asyncio.get_event_loop().create_future()
+                mode = {
+                    "text": f"want to use tool of `{name}`, are you ok? [y/n]",
+                    "ticket": ticket
+                }
+                send_mode(mode)
+                result = await fut
+                ticket.set_result(None)
+                return result
             finally:
                 minibuf.accept_handler = tmp
         return input(f"$ want to use tool of `{name}`, are you ok? [y/n]: ")
@@ -203,7 +221,7 @@ async def main() -> None:
             if command == "quit" or command == "exit":
                 break
             if command == "edit":
-                update_modeline()
+                send_mode({"text": "", "duration": "1"})
                 edit_mode = True
                 await app.run_async()
                 edit_mode = False
