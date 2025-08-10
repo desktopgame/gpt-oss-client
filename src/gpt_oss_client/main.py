@@ -10,41 +10,15 @@ try:
 except ImportError:
     import lib
 
-api_key = "lmstudio"
-base_url = "http://localhost:1234/v1"
-model = "openai/gpt-oss-120b"
-auto_approve = False
-context_length = 0
-system_prompt = "あなたは日本語で話す親切なアシスタントです。"
+config = lib.Config()
+config.update()
 
-try:
-    with open("gpt-oss-client.json", "r", encoding="UTF-8") as fp:
-        config = json.load(fp)
-
-        if "api_key" in config:
-            api_key = config["api_key"]
-        if "base_url" in config:
-            base_url = config["base_url"]
-        if "model" in config:
-            model = config["model"]
-        if "auto_approve" in config:
-            auto_approve = config["auto_approve"]
-        if "context_length" in config:
-            context_length = config["context_length"]
-except:
-    pass
-
-try:
-    with open("system-prompt.txt", "r", encoding="UTF-8") as fp:
-        system_prompt = fp.read()
-except:
-    pass
-
-try:
-    with open("system-prompt.md", "r", encoding="UTF-8") as fp:
-        system_prompt = fp.read()
-except:
-    pass
+api_key = config.api_key
+base_url = config.base_url
+model = config.base_url
+auto_approve = config.auto_approve
+context_length = config.context_length
+system_prompt = config.system_prompt
 
 client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 counter = lib.TokenCounter("gpt-oss-")

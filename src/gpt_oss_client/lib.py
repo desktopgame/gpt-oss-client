@@ -6,6 +6,52 @@ from typing import Any
 from pathlib import Path
 
 
+class Config:
+    def __init__(self):
+        self.api_key = "lmstudio"
+        self.base_url = "http://localhost:1234/v1"
+        self.model = "openai/gpt-oss-120b"
+        self.auto_approve = False
+        self.context_length = 0
+        self.system_prompt = "あなたは日本語で話す親切なアシスタントです。"
+
+    def update(self):
+        self.__load("gpt-oss-client.json", self.__hook_basic)
+        self.__load("system-prompt.txt", self.__hook_system_prompt)
+        self.__load("system-prompt.md", self.__hook_system_prompt)
+
+    def __load(self, name: str, on_load):
+        try:
+            load_at = Path.home().joinpath(name)
+            with open(load_at, "r", encoding="UTF-8") as fp:
+                on_load(fp)
+            return
+        except:
+            pass
+        try:
+            with open(name, "r", encoding="UTF-8") as fp:
+                on_load(fp)
+        except:
+            pass
+
+    def __hook_basic(self, fp):
+        config = json.load(fp)
+
+        if "api_key" in config:
+            self.api_key = config["api_key"]
+        if "base_url" in config:
+            self.base_url = config["base_url"]
+        if "model" in config:
+            self.model = config["model"]
+        if "auto_approve" in config:
+            self.auto_approve = config["auto_approve"]
+        if "context_length" in config:
+            self.context_length = config["context_length"]
+
+    def __hook_system_prompt(self, fp):
+        self.system_prompt = fp.read()
+
+
 class StdioPipe:
     def __init__(self, config):
         self.config = config
