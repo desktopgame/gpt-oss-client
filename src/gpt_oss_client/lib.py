@@ -95,7 +95,7 @@ class StdioPipe:
 
     async def shutdown(self):
         try:
-            await self.proc.communicate()
+            await asyncio.wait_for(self.proc.communicate(), timeout=60) # noqa
         except Exception:
             self.proc.kill()
 
