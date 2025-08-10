@@ -37,11 +37,13 @@ spinner_mcp = Halo(text="Running", spinner="dots")
 
 edit_mode = False
 marker_id = 0
+chat_lock = False
 
 
 async def main() -> None:
     global edit_mode
     global marker_id
+    global chat_lock
 
     # init common
     
@@ -101,6 +103,10 @@ async def main() -> None:
     # init editor
 
     async def chat_submit(message: str):
+        global chat_lock
+        if chat_lock:
+            return
+        chat_lock = True
         global marker_id
         editor.buffer.insert_line_below()
         editor.buffer.insert_text(f"<chat_response_is_here:{marker_id}>")
@@ -112,6 +118,7 @@ async def main() -> None:
         marker_id += 1
         minibuf.buffer.read_only = to_filter(False)
         minibuf.window.style = "class:minibuf"
+        chat_lock = False
 
     def accept_handler(buf: Buffer):
         message = buf.text
@@ -201,6 +208,7 @@ async def main() -> None:
             if idx >= 0:
                 new_text = text[:idx] + f"{lines}\n" + text[idx+len(ph):]
                 buf.text = new_text
+                buf.cursor_position = idx + len(lines) + 1
                 get_app().invalidate()
 
             if context_length > 0:
