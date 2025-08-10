@@ -62,6 +62,15 @@ async def main() -> None:
         }
     )
 
+    editor = TextArea(
+        wrap_lines=True,
+        scrollbar=True,
+        style="class:editor",
+        get_line_prefix=line_prefix,
+    )
+    minibuf = TextArea(height=1, multiline=False, style="class:minibuf")
+    modeline = TextArea(height=1, style="class:modeline", focusable=False)
+
     def line_prefix(line_no: int, wrap_count: int) -> list[tuple[str, str]]:
         num = f"{line_no + 1:>4} "
         return [("class:gutter", num)]
@@ -86,15 +95,7 @@ async def main() -> None:
         text = buf.text
         asyncio.create_task(handle_submit(text))
 
-    editor = TextArea(
-        wrap_lines=True,
-        scrollbar=True,
-        style="class:editor",
-        get_line_prefix=line_prefix,
-    )
-    minibuf = TextArea(height=1, multiline=False, style="class:minibuf")
     minibuf.accept_handler = accept_handler
-    modeline = TextArea(height=1, style="class:modeline", focusable=False)
 
     kb = KeyBindings()
 
