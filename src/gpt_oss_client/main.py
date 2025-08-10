@@ -4,7 +4,9 @@ import sys
 from openai import AsyncOpenAI
 from typing import Dict, Any
 from halo import Halo
+from prompt_toolkit.application.current import get_app
 from prompt_toolkit.application import Application
+from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout, HSplit
 from prompt_toolkit.styles import Style
@@ -32,6 +34,8 @@ spinner_load = Halo(text="Loading", spinner="dots")
 spinner_llm = Halo(text="Thinking", spinner="dots")
 spinner_mcp = Halo(text="Running", spinner="dots")
 
+edit_mode = False
+
 
 async def main() -> None:
     # init chat system
@@ -42,12 +46,16 @@ async def main() -> None:
         await mcp_client.start()
 
     def handle_llm_proc(method: str):
+        if edit_mode:
+            return
         if method == "begin":
             spinner_llm.start()
         elif method == "end":
             spinner_llm.stop()
 
     def handle_mcp_proc(method: str):
+        if edit_mode:
+            return
         if method == "begin":
             spinner_mcp.start()
         elif method == "end":
@@ -57,12 +65,19 @@ async def main() -> None:
         lines = response.choices[0].message.content.splitlines()
         lines = map(lambda line: f"> {line}", lines)
         lines = "\n".join(lines)
-        print(lines)
+        if edit_mode:
+            editor.buffer.insert_text(lines)
 
-        if context_length > 0:
-            tokens = chat_manager.token_count()
-            parcent = tokens / context_length
-            print(f"# token usage: {tokens}/{context_length} {parcent:.2%}")
+            update_modeline()
+            modeline.text = "Done."
+            get_app().invalidate()
+        else:
+            print(lines)
+
+            if context_length > 0:
+                tokens = chat_manager.token_count()
+                parcent = tokens / context_length
+                print(f"# token usage: {tokens}/{context_length} {parcent:.2%}")
 
     def handle_use_proc(name):
         return input(f"$ want to use tool of `{name}`, are you ok? [y/n]: ")
@@ -96,13 +111,28 @@ async def main() -> None:
         pct = int(row / max(1, doc.line_count) * 100)
         modeline.text = f"  {name}  {row}:{col}  {pct}%  UTF-8  "
 
+    async def handle_submit(prompt: str):
+        if len(prompt.strip()) == 0:
+            return
+
+        minibuf.buffer.reset()
+        modeline.text = "Thinking..."
+        get_app().invalidate()
+
+        await chat_manager.post(prompt)
+
+    def accept_handler(buf: Buffer):
+        text = buf.text
+        asyncio.create_task(handle_submit(text))
+
     editor = TextArea(
         wrap_lines=True,
         scrollbar=True,
         style="class:editor",
         get_line_prefix=line_prefix,
     )
-    minibuf = TextArea(height=1, prompt="M-x ", multiline=False, style="class:minibuf")
+    minibuf = TextArea(height=1, multiline=False, style="class:minibuf")
+    minibuf.accept_handler = accept_handler
     modeline = TextArea(height=1, style="class:modeline", focusable=False)
 
     kb = KeyBindings()
@@ -152,7 +182,9 @@ async def main() -> None:
                 break
             if command == "edit":
                 update_modeline()
+                edit_mode = True
                 await app.run_async()
+                edit_mode = False
                 continue
         await chat_manager.post(next_prompt)
 
