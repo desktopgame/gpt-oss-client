@@ -241,7 +241,7 @@ class ChatManager:
         self.tool2client = {}
         self.counter = TokenCounter("gpt-oss-")
 
-        def nop(method: str):
+        def nop(evt):
             pass
         self.handle_llm_proc = nop
         self.handle_mcp_proc = nop
