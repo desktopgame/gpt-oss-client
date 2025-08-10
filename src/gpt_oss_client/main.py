@@ -238,7 +238,7 @@ async def main() -> None:
             if command == "quit" or command == "exit":
                 break
             if command == "edit":
-                send_mode({"text": "", "duration": "1"})
+                send_mode({"text": "Please feel free to ask us anything.", "duration": 1})
                 edit_mode = True
                 await app.run_async()
                 edit_mode = False
