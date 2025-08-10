@@ -12,6 +12,7 @@ dependencies = [
     "halo>=0.0.31",
     "openai>=1.99.3",
     "openai-harmony>=0.0.3",
+    "tiktoken>=0.11.0",
 ]
 
 [project.scripts]
