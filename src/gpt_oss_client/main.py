@@ -62,12 +62,7 @@ async def main() -> None:
         return input(f"$ want to use tool of `{name}`, are you ok? [y/n]: ")
 
     chat_manager = lib.ChatManager(
-        client,
-        model,
-        system_prompt,
-        context_length,
-        mcp_clients,
-        auto_approve
+        client, model, system_prompt, context_length, mcp_clients, auto_approve
     )
     chat_manager.handle_llm_proc = handle_llm_proc
     chat_manager.handle_mcp_proc = handle_mcp_proc

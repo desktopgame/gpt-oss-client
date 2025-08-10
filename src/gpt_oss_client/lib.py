@@ -96,7 +96,7 @@ class StdioPipe:
 
     async def shutdown(self):
         try:
-            await asyncio.wait_for(self.proc.communicate(), timeout=60) # noqa
+            await asyncio.wait_for(self.proc.communicate(), timeout=60)  # noqa
         except Exception:
             self.proc.kill()
 
@@ -223,13 +223,15 @@ class TokenCounter:
 
 
 class ChatManager:
-    def __init__(self,
-                 open_ai: AsyncOpenAI,
-                 model: str,
-                 system_prompt: str,
-                 context_length: int,
-                 mcp_clients: Dict[str, McpClient],
-                 auto_approve: bool):
+    def __init__(
+        self,
+        open_ai: AsyncOpenAI,
+        model: str,
+        system_prompt: str,
+        context_length: int,
+        mcp_clients: Dict[str, McpClient],
+        auto_approve: bool,
+    ):
         self.open_ai = open_ai
         self.model = model
         self.system_prompt = system_prompt
@@ -243,6 +245,7 @@ class ChatManager:
 
         def nop(evt):
             pass
+
         self.handle_llm_proc = nop
         self.handle_mcp_proc = nop
         self.handle_msg_proc = nop
