@@ -4,6 +4,7 @@ import sys
 from openai import AsyncOpenAI
 from typing import Dict, Any
 from halo import Halo
+from prompt_toolkit.filters.utils import to_filter
 from prompt_toolkit.application.current import get_app
 from prompt_toolkit.application import Application
 from prompt_toolkit.buffer import Buffer
@@ -51,6 +52,7 @@ async def main() -> None:
             "gutter": "bg:#222222 fg:#888888",
             "editor": "bg:#000000 fg:#e5e5e5",
             "minibuf": "bg:#1c1c1c fg:#d0d0d0",
+            "minibuf.disabled": "bg:#262626 fg:#777777 italic",
             "modeline": "reverse bold",
         }
     )
@@ -98,27 +100,22 @@ async def main() -> None:
 
     # init editor
 
-    def chat_send(message: str):
-        asyncio.create_task(chat_queue.put(message))
-
-    async def chat_poll():
-        try:
-            while True:
-                await chat_manager.post(await chat_queue.get())
-        except Exception:
-            pass
-
-    asyncio.create_task(chat_poll())
+    async def chat_submit(message: str):
+        minibuf.buffer.read_only = to_filter(True)
+        minibuf.window.style = "class:minibuf.disabled"
+        await chat_manager.post(message)
+        minibuf.buffer.read_only = to_filter(False)
+        minibuf.window.style = "class:minibuf"
 
     def accept_handler(buf: Buffer):
-        prompt = buf.text
-        if len(prompt.strip()) == 0:
+        message = buf.text
+        if len(message.strip()) == 0:
             return
 
         minibuf.buffer.reset()
         get_app().invalidate()
 
-        chat_send(prompt)
+        asyncio.create_task(chat_submit(message))
 
     minibuf.accept_handler = accept_handler
 
