@@ -42,6 +42,10 @@ async def main() -> None:
 
     # init common
     
+    def line_prefix(line_no: int, wrap_count: int) -> list[tuple[str, str]]:
+        num = f"{line_no + 1:>4} "
+        return [("class:gutter", num)]
+
     style = Style.from_dict(
         {
             "gutter": "bg:#222222 fg:#888888",
@@ -61,7 +65,7 @@ async def main() -> None:
     modeline = TextArea(height=1, style="class:modeline", focusable=False)    
     modequeue = asyncio.Queue()
 
-    async def send_mode(mode: Any):
+    def send_mode(mode: Any):
         asyncio.create_task(modequeue.put(mode))
 
     async def poll_mode():
@@ -91,10 +95,6 @@ async def main() -> None:
     )
 
     # init editor
-
-    def line_prefix(line_no: int, wrap_count: int) -> list[tuple[str, str]]:
-        num = f"{line_no + 1:>4} "
-        return [("class:gutter", num)]
 
     async def handle_submit(prompt: str):
         if len(prompt.strip()) == 0:
@@ -149,27 +149,44 @@ async def main() -> None:
 
     def handle_llm_proc(method: str):
         if edit_mode:
-            return
-        if method == "begin":
-            spinner_llm.start()
-        elif method == "end":
-            spinner_llm.stop()
+            if method == "begin":
+                send_mode({"text": "Thinking...", "duration": 1})
+            elif method == "end":
+                pass
+        else:
+            if method == "begin":
+                spinner_llm.start()
+            elif method == "end":
+                spinner_llm.stop()
 
     def handle_mcp_proc(method: str):
         if edit_mode:
-            return
-        if method == "begin":
-            spinner_mcp.start()
-        elif method == "end":
-            spinner_mcp.stop()
+            if method == "begin":
+                send_mode({"text": "Running...", "duration": 1})
+            elif method == "end":
+                pass
+        else:
+            if method == "begin":
+                spinner_mcp.start()
+            elif method == "end":
+                spinner_mcp.stop()
 
     def handle_msg_proc(response):
         lines = response.choices[0].message.content.splitlines()
         lines = map(lambda line: f"> {line}", lines)
         lines = "\n".join(lines)
         if edit_mode:
-            editor.buffer.insert_text(lines)
+            editor.buffer.insert_text(f"{lines}\n")
             get_app().invalidate()
+
+            if context_length > 0:
+                tokens = chat_manager.token_count()
+                parcent = tokens / context_length
+                mode = {
+                    "text": f"# token usage: {tokens}/{context_length} {parcent:.2%}",
+                    "duration": 1
+                }
+                send_mode(mode)
         else:
             print(lines)
 
@@ -227,6 +244,8 @@ async def main() -> None:
                 edit_mode = False
                 continue
         await chat_manager.post(next_prompt)
+
+    modequeue.shutdown()
 
     for name, mcp_client in mcp_clients.items():
         await mcp_client.shutdown()
