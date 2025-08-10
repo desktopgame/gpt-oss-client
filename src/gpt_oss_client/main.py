@@ -4,6 +4,11 @@ import sys
 from openai import AsyncOpenAI
 from typing import Dict, Any
 from halo import Halo
+from prompt_toolkit.application import Application
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.layout import Layout, HSplit
+from prompt_toolkit.styles import Style
+from prompt_toolkit.widgets import TextArea
 
 try:
     from . import lib
@@ -29,6 +34,7 @@ spinner_mcp = Halo(text="Running", spinner="dots")
 
 
 async def main() -> None:
+    # init chat system
     mcp_clients: Dict[str, lib.McpClient] = {}
     for name, server in mcp_config["mcpServers"].items():
         mcp_client = lib.McpClient(server)
@@ -69,6 +75,71 @@ async def main() -> None:
     chat_manager.handle_msg_proc = handle_msg_proc
     chat_manager.handle_use_proc = handle_use_proc
 
+    # init editor
+
+    style = Style.from_dict(
+        {
+            "gutter": "bg:#222222 fg:#888888",
+            "editor": "bg:#000000 fg:#e5e5e5",
+            "minibuf": "bg:#1c1c1c fg:#d0d0d0",
+            "modeline": "reverse bold",
+        }
+    )
+
+    def line_prefix(line_no: int, wrap_count: int) -> list[tuple[str, str]]:
+        num = f"{line_no + 1:>4} "
+        return [("class:gutter", num)]
+
+    def update_modeline(name="(unnamed)"):
+        doc = editor.buffer.document
+        row, col = doc.cursor_position_row + 1, doc.cursor_position_col + 1
+        pct = int(row / max(1, doc.line_count) * 100)
+        modeline.text = f"  {name}  {row}:{col}  {pct}%  UTF-8  "
+
+    editor = TextArea(
+        wrap_lines=True,
+        scrollbar=True,
+        style="class:editor",
+        get_line_prefix=line_prefix,
+    )
+    minibuf = TextArea(height=1, prompt="M-x ", multiline=False, style="class:minibuf")
+    modeline = TextArea(height=1, style="class:modeline", focusable=False)
+
+    kb = KeyBindings()
+
+    @kb.add("c-c")
+    def _(e):
+        e.app.exit()
+
+    @kb.add("c-x", "c-e")
+    def _(e):
+        e.app.layout.focus(minibuf)
+
+    @kb.add("c-x", "c-o")
+    def _(e):
+        e.app.layout.focus(editor)
+
+    @kb.add("c-g")
+    def _(e):
+        minibuf.buffer.reset()
+        e.app.invalidate()
+
+    @kb.add("c-c")
+    def _(e):
+        e.app.exit()
+
+    root = HSplit(
+        [
+            editor,
+            modeline,
+            minibuf,
+        ]
+    )
+    app = Application(
+        layout=Layout(root), key_bindings=kb, full_screen=True, style=style
+    )
+    # start
+
     spinner_load.start()
     await chat_manager.setup()
     spinner_load.stop()
@@ -79,6 +150,10 @@ async def main() -> None:
             command = next_prompt[1:].rstrip()
             if command == "quit" or command == "exit":
                 break
+            if command == "edit":
+                update_modeline()
+                await app.run_async()
+                continue
         await chat_manager.post(next_prompt)
 
     for name, mcp_client in mcp_clients.items():
