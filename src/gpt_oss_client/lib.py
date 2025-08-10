@@ -3,7 +3,8 @@ import os
 import json
 import tiktoken
 import pystache
-from typing import Any
+from openai import AsyncOpenAI
+from typing import Any, List, Dict
 from pathlib import Path
 
 
@@ -219,3 +220,160 @@ class TokenCounter:
                         total += len(self.enc.encode(function.get("name", "")))
                         total += len(self.enc.encode(function.get("arguments", "")))
         return total
+
+
+class ChatManager:
+    def __init__(self,
+                 open_ai: AsyncOpenAI,
+                 model: str,
+                 system_prompt: str,
+                 context_length: int,
+                 mcp_clients: Dict[str, McpClient],
+                 auto_approve: bool):
+        self.open_ai = open_ai
+        self.model = model
+        self.system_prompt = system_prompt
+        self.context_length = context_length
+        self.mcp_clients = mcp_clients
+        self.auto_approve = auto_approve
+        self.input_list = []
+        self.tools = []
+        self.tool2client = {}
+        self.counter = TokenCounter("gpt-oss-")
+
+        def nop(method: str):
+            pass
+        self.handle_llm_proc = nop
+        self.handle_mcp_proc = nop
+        self.handle_msg_proc = nop
+
+    async def setup(self):
+        self.tools = []
+        self.tool2client = {}
+        for _, mcp_client in self.mcp_clients.items():
+            await mcp_client.initialize()
+            await mcp_client.notifications_initialized()
+            tool_list = await mcp_client.tools_list()
+            self.tools.extend(tool_list)
+
+            for tool_item in tool_list:
+                self.tool2client[tool_item["function"]["name"]] = mcp_client
+
+        self.input_list = [{"role": "user", "content": self.system_prompt}]
+        response = await self.open_ai.chat.completions.create(
+            model=self.model,
+            messages=self.input_list,
+            tools=self.tools,
+            tool_choice="auto",
+        )
+        self.input_list.append(response.choices[0].message.to_dict())
+
+    async def __tool_use(self, response, tool_call):
+        fn = tool_call.function
+        if "method" in response and response["method"] == "notifications/cancelled":
+            self.input_list.append(
+                {
+                    "role": "tool",
+                    "call_id": tool_call.id,
+                    "content": f"failure a {fn.name} execute",
+                }
+            )
+            self.handle_llm_proc("begin")
+            response = await self.open_ai.chat.completions.create(
+                model=self.model,
+                messages=self.input_list,
+                tools=self.tools,
+                tool_choice="auto",
+            )
+            self.handle_llm_proc("end")
+            return response
+        else:
+            self.input_list.append(
+                {
+                    "role": "tool",
+                    "call_id": tool_call.id,
+                    "content": response["result"]["content"],
+                }
+            )
+            self.handle_llm_proc("begin")
+            response = await self.open_ai.chat.completions.create(
+                model=self.model,
+                messages=self.input_list,
+                tools=self.tools,
+                tool_choice="auto",
+            )
+            self.handle_llm_proc("end")
+            return response
+
+    async def __turn(self, response):
+        self.input_list.append(response.choices[0].message.to_dict())
+        tool_calls = response.choices[0].message.tool_calls
+        if tool_calls is not None and len(tool_calls) > 0:
+            for tool_call in tool_calls:
+                fn = tool_call.function
+                args = json.loads(fn.arguments)
+                if fn.name not in self.tool2client:
+                    self.input_list.append(
+                        {
+                            "role": "system",
+                            "call_id": tool_call.id,
+                            "content": f"{fn.name} is not found",
+                        }
+                    )
+                    self.handle_llm_proc("begin")
+                    response = await self.open_ai.chat.completions.create(
+                        model=self.model,
+                        messages=self.input_list,
+                        tools=self.tools,
+                        tool_choice="auto",
+                    )
+                    self.handle_llm_proc("end")
+                    await self.__turn(response)
+                    return
+                target_client = self.tool2client[fn.name]
+
+                confirm_result = "y"
+                if not self.auto_approve:
+                    confirm_result = input(
+                        f"$ want to use tool of `{fn.name}`, are you ok? [y/n]: "
+                    ).lower()  # noqa
+                if confirm_result == "y" or confirm_result == "yes":
+                    self.handle_mcp_proc("begin")
+                    response = await target_client.tools_call(fn.name, args)
+                    self.handle_mcp_proc("end")
+                    await self.__turn(await self.__tool_use(response, tool_call))
+                else:
+                    self.input_list.append(
+                        {
+                            "role": "user",
+                            "call_id": tool_call.id,
+                            "content": f"user rejected a {fn.name} execute",
+                        }
+                    )
+                    self.handle_llm_proc("begin")
+                    response = await self.open_ai.chat.completions.create(
+                        model=self.model,
+                        messages=self.input_list,
+                        tools=self.tools,
+                        tool_choice="auto",
+                    )
+                    self.handle_llm_proc("end")
+                    await self.__turn(response)
+        else:
+            self.handle_msg_proc(response)
+
+    async def post(self, message: str):
+        self.input_list.append({"role": "user", "content": message})
+
+        self.handle_llm_proc("begin")
+        response = await self.open_ai.chat.completions.create(
+            model=self.model,
+            messages=self.input_list,
+            tools=self.tools,
+            tool_choice="auto",
+        )
+        self.handle_llm_proc("end")
+        await self.__turn(response)
+
+    def token_count(self):
+        return self.counter.count(self.input_list)
