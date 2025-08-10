@@ -123,7 +123,9 @@ async def main() -> None:
 
                 confirm_result = "y"
                 if not auto_approve:
-                    confirm_result = input(f"$ want to use tool of `{fn.name}`, are you ok? [y/n]: ").lower() # noqa
+                    confirm_result = input(
+                        f"$ want to use tool of `{fn.name}`, are you ok? [y/n]: "
+                    ).lower()  # noqa
                 if confirm_result == "y" or confirm_result == "yes":
                     spinner_mcp.start()
                     response = await target_client.tools_call(fn.name, args)
@@ -154,7 +156,7 @@ async def main() -> None:
 
             if context_length > 0:
                 tokens = counter.count(input_list)
-                parcent = (tokens / context_length)
+                parcent = tokens / context_length
                 print(f"# token usage: {tokens}/{context_length} {parcent:.2%}")
 
     while True:

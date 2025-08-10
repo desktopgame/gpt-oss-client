@@ -2,6 +2,7 @@ import asyncio
 import os
 import json
 import tiktoken
+import pystache
 from typing import Any
 from pathlib import Path
 
@@ -55,6 +56,15 @@ class Config:
 
     def __hook_mcp(self, fp):
         self.mcp = json.load(fp)
+
+        def expand_macro(s: str) -> str:
+            return pystache.render(s, {"cwd", os.getcwd()})
+
+        if "mcpServers" in self.mcp:
+            servers = self.mcp["mcpServers"]
+            for name, server in servers.items():
+                if "args" in server:
+                    server["args"] = list(map(expand_macro, server["args"]))  # noqa
 
 
 class StdioPipe:
@@ -197,7 +207,11 @@ class TokenCounter:
                 text = m["content"]
                 if text is not None:
                     if isinstance(text, list):
-                        text = "".join(part.get("text","") for part in text if isinstance(part, dict))
+                        text = "".join(
+                            part.get("text", "")
+                            for part in text
+                            if isinstance(part, dict)
+                        )
                     total += len(self.enc.encode(text))
             if "tool_calls" in m:
                 tool_calls = m["tool_calls"]
