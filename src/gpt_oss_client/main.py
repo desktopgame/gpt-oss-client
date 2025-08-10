@@ -94,20 +94,31 @@ async def main() -> None:
         client, model, system_prompt, context_length, mcp_clients, auto_approve
     )
 
+    chat_queue = asyncio.Queue()
+
     # init editor
 
-    async def handle_submit(prompt: str):
+    def chat_send(message: str):
+        asyncio.create_task(chat_queue.put(message))
+
+    async def chat_poll():
+        try:
+            while True:
+                await chat_manager.post(await chat_queue.get())
+        except Exception:
+            pass
+
+    asyncio.create_task(chat_poll())
+
+    def accept_handler(buf: Buffer):
+        prompt = buf.text
         if len(prompt.strip()) == 0:
             return
 
         minibuf.buffer.reset()
         get_app().invalidate()
 
-        await chat_manager.post(prompt)
-
-    def accept_handler(buf: Buffer):
-        text = buf.text
-        asyncio.create_task(handle_submit(text))
+        chat_send(prompt)
 
     minibuf.accept_handler = accept_handler
 
