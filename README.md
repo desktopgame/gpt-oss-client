@@ -60,5 +60,22 @@ mcp.json
 }
 ```
 
+MCPの設定には変数を使うことができます。  
+いまのところ、cwdという変数だけが存在します。
+```mcp.json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "{{cwd}}"
+      ]
+    }
+  }
+}
+```
+
 起動時ディレクトリに設定がない場合、ユーザーディレクトリに読みに行きます。  
 そこにもなければ、デフォルト設定で動作します。
