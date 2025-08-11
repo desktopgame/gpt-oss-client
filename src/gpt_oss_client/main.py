@@ -274,16 +274,37 @@ async def main() -> None:
     while True:
         next_prompt = sys.stdin.readline().rstrip()
         if next_prompt.startswith("/"):
-            command = next_prompt[1:].rstrip()
+            command_with_args = next_prompt[1:].rstrip().split(" ")
+            command = command_with_args[0]
+            args = command_with_args[1:]
             if command == "quit" or command == "exit":
                 break
             elif command == "edit":
+                file = ""
+                if len(args) > 0:
+                    file = args[0]
+                if file != "":
+                    try:
+                        with open(file, "r", encoding="UTF-8") as fp:
+                            editor.buffer.text = fp.read()
+                            editor.buffer.cursor_position = 0
+                    except Exception:
+                        editor.buffer.text = ""
+                        editor.buffer.cursor_position = 0
+                else:
+                    editor.buffer.text = ""
+                    editor.buffer.cursor_position = 0
+
                 send_mode(
                     {"text": "Please feel free to ask us anything.", "duration": 1}
                 )
                 edit_mode = True
                 await app.run_async()
                 edit_mode = False
+
+                if file != "":
+                    with open(file, "w", encoding="UTF-8") as fp:
+                        fp.write(editor.buffer.text)
                 continue
             elif command == "clear":
                 chat_manager.clear()
