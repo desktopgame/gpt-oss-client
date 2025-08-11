@@ -276,11 +276,14 @@ async def main() -> None:
             command = next_prompt[1:].rstrip()
             if command == "quit" or command == "exit":
                 break
-            if command == "edit":
+            elif command == "edit":
                 send_mode({"text": "Please feel free to ask us anything.", "duration": 1})
                 edit_mode = True
                 await app.run_async()
                 edit_mode = False
+                continue
+            elif command == "clear":
+                chat_manager.clear()
                 continue
         await chat_manager.post(next_prompt)
 

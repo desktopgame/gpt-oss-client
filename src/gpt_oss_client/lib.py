@@ -380,5 +380,9 @@ class ChatManager:
         self.handle_llm_proc("end")
         await self.__turn(response)
 
+    def clear(self):
+        if len(self.input_list) >= 2:
+            self.input_list = self.input_list[:2]
+
     def token_count(self):
         return self.counter.count(self.input_list)
