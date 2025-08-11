@@ -5,7 +5,7 @@ import io, re, functools
 from rich.console import Console
 from rich.markdown import Markdown
 from sympy.parsing.latex import parse_latex
-from sympy import pretty as sympy_pretty
+from sympy import pretty as sympy_pretty, sstr
 from openai import AsyncOpenAI
 from typing import Dict, Any
 from halo import Halo
@@ -45,11 +45,12 @@ spinner_load = Halo(text="Loading", spinner="dots")
 spinner_llm = Halo(text="Thinking", spinner="dots")
 spinner_mcp = Halo(text="Running", spinner="dots")
 
-console = Console(force_terminal=True, color_system="truecolor")
+console = Console(color_system="truecolor")
 
-FENCE_RE  = re.compile(r"```.*?```", re.DOTALL)
-BLOCK_RE  = re.compile(r"\$\$(.+?)\$\$", re.DOTALL)
-INLINE_RE = re.compile(r"(?<!\$)\$(.+?)\$(?!\$)", re.DOTALL)
+FENCE_RE    = re.compile(r"```.*?```", re.DOTALL)
+INLINECODE  = re.compile(r"`[^`\n]*`")                   # インラインコード
+BLOCK_RE    = re.compile(r"\$\$(.+?)\$\$", re.DOTALL)    # $$ ... $$
+INLINE_RE   = re.compile(r"(?<!\$)\$(.+?)\$(?!\$)", re.DOTALL)  # \$ は対象外
 
 edit_mode = False
 marker_id = 0
@@ -58,50 +59,61 @@ is_view_mode = [False]
 
 
 @functools.lru_cache(maxsize=512)
-def _latex_to_unicode(src: str) -> str:
+def _latex_block_to_ascii(src: str) -> str:
     try:
         expr = parse_latex(src)
-        return sympy_pretty(expr, use_unicode=True)
-    except Exception as ex:
-        with open('ex.txt', 'w', encoding='UTF-8') as fp:
-            fp.write(repr(ex))
-        return src  # 失敗時は原文のまま
+        # 罫線アートを壊さないためにラップ禁止 & 十分な幅を確保
+        return sympy_pretty(expr, use_unicode=True, wrap_line=False, num_columns=9999)
+    except Exception:
+        return src  # 失敗は原文
 
-def _replace_blocks(text: str) -> str:
-    # フェンスコードを退避して、外側だけ数式置換
+@functools.lru_cache(maxsize=1024)
+def _latex_inline_to_single(src: str) -> str:
+    try:
+        expr = parse_latex(src)
+        # インラインは1行表現が崩れにくい（a^2, 1/x**2 など）
+        return sstr(expr)
+    except Exception:
+        return src
+
+def _stash_regions(text: str, patterns):
     holes = []
-    def _stash(m):
+    def stash(m):
         holes.append(m.group(0))
-        return f"⟪CODE#{len(holes)-1}⟫"
+        return f"⟪HOLE#{len(holes)-1}⟫"
+    for pat in patterns:
+        text = pat.sub(stash, text)
+    return text, holes
 
-    def _unstash(s):
-        def putback(mm):
-            return holes[int(mm.group(1))]
-        return re.sub(r"⟪CODE#(\d+)⟫", putback, s)
-
-    stashed = FENCE_RE.sub(_stash, text)
-
-    def rb(m):
-        body = m.group(1).strip()
-        return "\n" + _latex_to_unicode(body) + "\n"
-
-    def ri(m):
-        body = m.group(1).strip()
-        return _latex_to_unicode(body)
-
-    # 先にブロック、次にインライン
-    stashed = BLOCK_RE.sub(rb, stashed)
-    stashed = INLINE_RE.sub(ri, stashed)
-
-    return _unstash(stashed)
+def _unstash(text: str, holes):
+    def putback(m): return holes[int(m.group(1))]
+    return re.sub(r"⟪HOLE#(\d+)⟫", putback, text)
 
 def render_markdown_and_latex(text: str) -> str:
-    # 1) LaTeX → Unicode へ置換（コードブロック除外済み）
-    mixed = _replace_blocks(text)
-    # 2) Markdown を Rich で ANSI へ
+    # 1) コード領域は退避（数式置換の対象外）
+    stashed, holes = _stash_regions(text, [FENCE_RE, INLINECODE])
+
+    # 2) LaTeX置換：ブロック→インラインの順
+    def rep_block(m):
+        body = m.group(1).strip()
+        pretty = _latex_block_to_ascii(body)
+        # コードフェンスで包んで Rich の整形・折返しを止める
+        return "\n```text\n" + pretty + "\n```\n"
+
+    def rep_inline(m):
+        body = m.group(1).strip()
+        return _latex_inline_to_single(body)
+
+    stashed = BLOCK_RE.sub(rep_block, stashed)
+    stashed = INLINE_RE.sub(rep_inline, stashed)
+
+    # 3) 退避を戻す
+    mixed = _unstash(stashed, holes)
+
+    # 4) Markdown → ANSI
     buf = io.StringIO()
     console.file = buf
-    console.print(Markdown(mixed), end="", justify="center")
+    console.print(Markdown(mixed), end="")  # code block内は等幅で崩れにくい
     console.file = None
     return buf.getvalue()
 
