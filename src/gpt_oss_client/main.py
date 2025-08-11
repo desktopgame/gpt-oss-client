@@ -46,7 +46,7 @@ async def main() -> None:
     global chat_lock
 
     # init common
-    
+
     def line_prefix(line_no: int, wrap_count: int) -> list[tuple[str, str]]:
         num = f"{line_no + 1:>4} "
         return [("class:gutter", num)]
@@ -68,7 +68,7 @@ async def main() -> None:
         get_line_prefix=line_prefix,
     )
     minibuf = TextArea(height=1, multiline=False, style="class:minibuf")
-    modeline = TextArea(height=1, style="class:modeline", focusable=False)    
+    modeline = TextArea(height=1, style="class:modeline", focusable=False)
     modequeue = asyncio.Queue()
 
     def send_mode(mode: Any):
@@ -148,7 +148,7 @@ async def main() -> None:
 
     @kb.add("c-x", "c-x")
     def _(e):
-        asyncio.create_task(chat_submit(editor.buffer.document.current_line)) # noqa
+        asyncio.create_task(chat_submit(editor.buffer.document.current_line))  # noqa
 
     @kb.add("c-g")
     def _(e):
@@ -202,7 +202,7 @@ async def main() -> None:
             text = buf.text
             idx = text.find(ph)
             if idx >= 0:
-                new_text = text[:idx] + f"{lines}\n" + text[idx+len(ph):]
+                new_text = text[:idx] + f"{lines}\n" + text[idx + len(ph) :]
                 buf.text = new_text
                 buf.cursor_position = idx + len(lines) + 1
                 get_app().invalidate()
@@ -212,7 +212,7 @@ async def main() -> None:
                 parcent = tokens / context_length
                 mode = {
                     "text": f"# token usage: {tokens}/{context_length} {parcent:.2%}",
-                    "duration": 1
+                    "duration": 1,
                 }
                 send_mode(mode)
         else:
@@ -235,6 +235,7 @@ async def main() -> None:
                     submitted = True
                 else:
                     send_mode("Please wait a moment...")
+
             tmp_accept_handler = minibuf.accept_handler
             tmp_read_only = minibuf.buffer.read_only
             tmp_style = minibuf.window.style
@@ -247,7 +248,7 @@ async def main() -> None:
                 ticket = asyncio.get_event_loop().create_future()
                 mode = {
                     "text": f"want to use tool of `{name}`, are you ok? [y/n]",
-                    "ticket": ticket
+                    "ticket": ticket,
                 }
                 send_mode(mode)
                 result = await fut
@@ -277,7 +278,9 @@ async def main() -> None:
             if command == "quit" or command == "exit":
                 break
             elif command == "edit":
-                send_mode({"text": "Please feel free to ask us anything.", "duration": 1})
+                send_mode(
+                    {"text": "Please feel free to ask us anything.", "duration": 1}
+                )
                 edit_mode = True
                 await app.run_async()
                 edit_mode = False
