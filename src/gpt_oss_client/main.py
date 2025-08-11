@@ -9,8 +9,10 @@ from sympy import pretty as sympy_pretty, sstr
 from openai import AsyncOpenAI
 from typing import Dict, Any
 from halo import Halo
+from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.filters.utils import to_filter
+from prompt_toolkit.formatted_text import split_lines
 from prompt_toolkit.application.current import get_app
 from prompt_toolkit.application import Application
 from prompt_toolkit.buffer import Buffer
@@ -18,7 +20,13 @@ from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout, HSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl, BufferControl, FormattedTextControl
-from prompt_toolkit.layout.containers import ConditionalContainer
+from prompt_toolkit.layout.containers import ConditionalContainer, ScrollOffsets
+from prompt_toolkit.layout.margins import ScrollbarMargin
+from prompt_toolkit.layout.dimension import Dimension as D
+from prompt_toolkit.key_binding.bindings.scroll import (
+    scroll_one_line_down, scroll_one_line_up,
+    scroll_page_down, scroll_page_up,
+)
 from prompt_toolkit.formatted_text import ANSI
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import TextArea
@@ -56,6 +64,7 @@ edit_mode = False
 marker_id = 0
 chat_lock = False
 is_view_mode = [False]
+view_at = Point(0, 0)
 
 
 @functools.lru_cache(maxsize=512)
@@ -122,6 +131,7 @@ async def main() -> None:
     global edit_mode
     global marker_id
     global chat_lock
+    global view_at
 
     # init common
 
@@ -149,8 +159,44 @@ async def main() -> None:
     modeline = TextArea(height=1, style="class:modeline", focusable=False)
     modequeue = asyncio.Queue()
 
-    view = FormattedTextControl()
-    view_window = Window(view)
+    view_kb = KeyBindings()
+    view: FormattedTextControl = None
+    view_window: Window = None
+
+    @view_kb.add('up')
+    def _(e):
+        # view_window._scroll_up()
+        # if view_window.vertical_scroll > 0:
+        #     view_window.vertical_scroll -= 1
+        # scroll_one_line_up(e)
+        global view_at
+        if is_view_mode[0]:
+            y = view_at.y - 1
+            if y < 0:
+                y = 0
+            view_at = Point(view_at.x, y)
+    @view_kb.add('down')
+    def _(e):
+        # if view_window.vertical_scroll < view_window.height:
+        # view_window.vertical_scroll += 1
+        # view_window._scroll_down()
+        # scroll_one_line_down(e)
+        global view_at
+        if is_view_mode[0]:
+            y = view_at.y + 1
+            h = len(list(split_lines(view._get_formatted_text_cached())))
+            if y >= h:
+                y = h - 1
+            view_at = Point(view_at.x, y)
+
+    view = FormattedTextControl(focusable=True, show_cursor=True, key_bindings=view_kb,
+    get_cursor_position=lambda: view_at)
+    view_window = Window(
+    content=view,
+    wrap_lines=False,                    
+    right_margins=[ScrollbarMargin()],   
+    height=D(weight=1),
+    cursorline=True)
 
     workspace = HSplit(
         [
@@ -276,18 +322,28 @@ async def main() -> None:
         e.app.invalidate()
 
     @kb.add("f2")
-    def _(event):
+    def _(e):
+        global view_at
         is_view_mode[0] = not is_view_mode[0]
         if is_view_mode[0]:
             view.text = ANSI(render_markdown_and_latex(editor.buffer.text))
-        event.app.invalidate()
+            view_at = Point(0, 0)
+            e.app.layout.focus(view)
+        else:
+            e.app.layout.focus(editor)
+        e.app.invalidate()
+        if is_view_mode[0]:
+            e.app.layout.focus(view)
+        else:
+            e.app.layout.focus(editor)
 
     root = HSplit([
         edit_container,
         view_container,
     ])
     app = Application(
-        layout=Layout(root), key_bindings=kb, full_screen=True, style=style
+        layout=Layout(root), key_bindings=kb, full_screen=True, style=style,
+                  mouse_support=True
     )
 
     # setup
