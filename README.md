@@ -1,5 +1,5 @@
 # gpt-oss-client
-gpt-oss-client は、チャットモード／エディットモードの二つのモードを搭載した gpt-oss 専用のLLMクライアントです。
+gpt-oss-client は、チャットモード／エディットモードの二つのモードを搭載した gpt-oss 専用のLLMクライアントです。  
 function calling に対応しています。
 
 ## How to install
