@@ -120,6 +120,23 @@ async def main() -> None:
         minibuf.window.style = "class:minibuf"
         chat_lock = False
 
+    async def chat_submit_selected():
+        buf = editor.buffer
+        sel = buf.selection_state
+        if not sel:
+            return
+        a = buf.cursor_position
+        b = sel.original_cursor_position
+        start, end = (a, b) if a < b else (b, a)
+        text = editor.buffer.text[start:end]
+        next_line_pos = end
+        while next_line_pos < len(editor.buffer.text):
+            if editor.buffer.text[next_line_pos] == "\n":
+                break
+            next_line_pos += 1
+        editor.buffer.cursor_position = next_line_pos
+        await chat_submit(text)
+
     def accept_handler(buf: Buffer):
         message = buf.text
         if len(message.strip()) == 0:
@@ -145,6 +162,10 @@ async def main() -> None:
     @kb.add("c-x", "c-o")
     def _(e):
         e.app.layout.focus(editor)
+
+    @kb.add("c-x", "c-w")
+    def _(e):
+        asyncio.create_task(chat_submit_selected())  # noqa
 
     @kb.add("c-x", "c-x")
     def _(e):
