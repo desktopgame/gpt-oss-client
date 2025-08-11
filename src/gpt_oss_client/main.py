@@ -1,15 +1,25 @@
 import asyncio
 import json
 import sys
+import io, re, functools
+from rich.console import Console
+from rich.markdown import Markdown
+from sympy.parsing.latex import parse_latex
+from sympy import pretty as sympy_pretty
 from openai import AsyncOpenAI
 from typing import Dict, Any
 from halo import Halo
+from prompt_toolkit.filters import Condition
 from prompt_toolkit.filters.utils import to_filter
 from prompt_toolkit.application.current import get_app
 from prompt_toolkit.application import Application
 from prompt_toolkit.buffer import Buffer
+from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.layout import Layout, HSplit
+from prompt_toolkit.layout import Layout, HSplit, Window
+from prompt_toolkit.layout.controls import FormattedTextControl, BufferControl, FormattedTextControl
+from prompt_toolkit.layout.containers import ConditionalContainer
+from prompt_toolkit.formatted_text import ANSI
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import TextArea
 
@@ -35,9 +45,65 @@ spinner_load = Halo(text="Loading", spinner="dots")
 spinner_llm = Halo(text="Thinking", spinner="dots")
 spinner_mcp = Halo(text="Running", spinner="dots")
 
+console = Console(force_terminal=True, color_system="truecolor")
+
+FENCE_RE  = re.compile(r"```.*?```", re.DOTALL)
+BLOCK_RE  = re.compile(r"\$\$(.+?)\$\$", re.DOTALL)
+INLINE_RE = re.compile(r"(?<!\$)\$(.+?)\$(?!\$)", re.DOTALL)
+
 edit_mode = False
 marker_id = 0
 chat_lock = False
+is_view_mode = [False]
+
+
+@functools.lru_cache(maxsize=512)
+def _latex_to_unicode(src: str) -> str:
+    try:
+        expr = parse_latex(src)
+        return sympy_pretty(expr, use_unicode=True)
+    except Exception as ex:
+        with open('ex.txt', 'w', encoding='UTF-8') as fp:
+            fp.write(repr(ex))
+        return src  # 失敗時は原文のまま
+
+def _replace_blocks(text: str) -> str:
+    # フェンスコードを退避して、外側だけ数式置換
+    holes = []
+    def _stash(m):
+        holes.append(m.group(0))
+        return f"⟪CODE#{len(holes)-1}⟫"
+
+    def _unstash(s):
+        def putback(mm):
+            return holes[int(mm.group(1))]
+        return re.sub(r"⟪CODE#(\d+)⟫", putback, s)
+
+    stashed = FENCE_RE.sub(_stash, text)
+
+    def rb(m):
+        body = m.group(1).strip()
+        return "\n" + _latex_to_unicode(body) + "\n"
+
+    def ri(m):
+        body = m.group(1).strip()
+        return _latex_to_unicode(body)
+
+    # 先にブロック、次にインライン
+    stashed = BLOCK_RE.sub(rb, stashed)
+    stashed = INLINE_RE.sub(ri, stashed)
+
+    return _unstash(stashed)
+
+def render_markdown_and_latex(text: str) -> str:
+    # 1) LaTeX → Unicode へ置換（コードブロック除外済み）
+    mixed = _replace_blocks(text)
+    # 2) Markdown を Rich で ANSI へ
+    buf = io.StringIO()
+    console.file = buf
+    console.print(Markdown(mixed), end="", justify="center")
+    console.file = None
+    return buf.getvalue()
 
 
 async def main() -> None:
@@ -70,6 +136,27 @@ async def main() -> None:
     minibuf = TextArea(height=1, multiline=False, style="class:minibuf")
     modeline = TextArea(height=1, style="class:modeline", focusable=False)
     modequeue = asyncio.Queue()
+
+    view = FormattedTextControl()
+    view_window = Window(view)
+
+    workspace = HSplit(
+        [
+            editor,
+            modeline,
+            minibuf,
+        ]
+    )
+
+    edit_container = ConditionalContainer(
+        content=workspace,
+        filter=Condition(lambda: not is_view_mode[0])
+    )
+
+    view_container = ConditionalContainer(
+        content=view_window,
+        filter=Condition(lambda: is_view_mode[0])
+    )
 
     def send_mode(mode: Any):
         asyncio.create_task(modequeue.put(mode))
@@ -176,13 +263,17 @@ async def main() -> None:
         minibuf.buffer.reset()
         e.app.invalidate()
 
-    root = HSplit(
-        [
-            editor,
-            modeline,
-            minibuf,
-        ]
-    )
+    @kb.add("f2")
+    def _(event):
+        is_view_mode[0] = not is_view_mode[0]
+        if is_view_mode[0]:
+            view.text = ANSI(render_markdown_and_latex(editor.buffer.text))
+        event.app.invalidate()
+
+    root = HSplit([
+        edit_container,
+        view_container,
+    ])
     app = Application(
         layout=Layout(root), key_bindings=kb, full_screen=True, style=style
     )
