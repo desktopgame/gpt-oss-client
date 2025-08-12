@@ -391,16 +391,11 @@ async def main() -> None:
 
     @session_kb.add('enter', filter=has_completions)
     def _(event):
-        """タブキーで補完候補を挿入（補完メニューは閉じない）"""
         global completable
         buff = event.current_buffer
         if buff.complete_state:
-            # 現在の補完候補を適用
             completion = buff.complete_state.current_completion
             if completion:
-                # 補完を適用するが、補完状態は維持
-                # buff.delete_before_cursor(-completion.start_position)
-                # buff.insert_text(completion.text)
                 completable = False
                 buff.apply_completion(completion)
                 buff.complete_state = None
@@ -410,7 +405,6 @@ async def main() -> None:
 
     @session_kb.add('tab')
     def _(event):
-        """タブキーで補完候補を循環"""
         buff = event.current_buffer
         if buff.complete_state:
             buff.complete_next()
@@ -419,7 +413,6 @@ async def main() -> None:
 
     @session_kb.add('escape')
     def _(event):
-        """Escapeキーで補完をキャンセル"""
         buff = event.current_buffer
         if buff.complete_state:
             buff.cancel_completion()
@@ -482,7 +475,6 @@ async def main() -> None:
 
 
 def run():
-    """Entry point for the command line script."""
     asyncio.run(main())
 
 
