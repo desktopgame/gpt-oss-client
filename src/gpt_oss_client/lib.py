@@ -480,7 +480,6 @@ class CommandCompleter(Completer):
         super().__init__()
         self.commands = ["quit", "exit", "edit", "clear", "cd", "pwd"]
 
-
     def get_completions(self, document, complete_event):
         if document.cursor_position == len(document.text):
             yield from self.__get_completions(document, complete_event)
@@ -513,7 +512,11 @@ class CommandCompleter(Completer):
                         pathstr: str = args.lstrip()
                         p = Path(pathstr)
 
-                        if not p.exists() or pathstr.endswith(" ") or not pathstr.endswith(os.path.sep):
+                        if (
+                            not p.exists()
+                            or pathstr.endswith(" ")
+                            or not pathstr.endswith(os.path.sep)
+                        ):
                             progress = p.name
                             parent = p.parent
                             p = None
@@ -524,7 +527,11 @@ class CommandCompleter(Completer):
                                     continue
                                 yield Completion(child.name, start_position=0)
                     else:
-                        if parent is not None and parent.exists() and not parent.name.endswith(" "):
+                        if (
+                            parent is not None
+                            and parent.exists()
+                            and not parent.name.endswith(" ")
+                        ):
                             for child in parent.iterdir():
                                 if child.name.startswith("."):
                                     continue
@@ -543,7 +550,11 @@ class CommandCompleter(Completer):
                     if not args.rstrip().endswith(".") and not args.rstrip().endswith(
                         ".."
                     ):
-                        if not p.exists() or pathstr.endswith(" ") or not pathstr.endswith(os.path.sep):
+                        if (
+                            not p.exists()
+                            or pathstr.endswith(" ")
+                            or not pathstr.endswith(os.path.sep)
+                        ):
                             progress = p.name
                             parent = p.parent
                             p = None
@@ -556,7 +567,11 @@ class CommandCompleter(Completer):
                                         continue
                                     yield Completion(child.name, start_position=0)
                         else:
-                            if parent is not None and parent.exists() and not parent.name.endswith(" "):
+                            if (
+                                parent is not None
+                                and parent.exists()
+                                and not parent.name.endswith(" ")
+                            ):
                                 for child in parent.iterdir():
                                     if not child.is_dir():
                                         continue
