@@ -250,10 +250,6 @@ async def main() -> None:
         else:
             e.app.layout.focus(editor)
         e.app.invalidate()
-        if is_view_mode[0]:
-            e.app.layout.focus(view)
-        else:
-            e.app.layout.focus(editor)
 
     root = HSplit([
         edit_container,
