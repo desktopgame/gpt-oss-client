@@ -389,7 +389,7 @@ async def main() -> None:
     session_kb = KeyBindings()
     completion_filter = Condition(lambda: completable)
 
-    @session_kb.add('enter', filter=has_completions)
+    @session_kb.add("enter", filter=has_completions)
     def _(event):
         global completable
         buff = event.current_buffer
@@ -402,8 +402,7 @@ async def main() -> None:
                 event.app.invalidate()
                 completable = True
 
-
-    @session_kb.add('tab')
+    @session_kb.add("tab")
     def _(event):
         buff = event.current_buffer
         if buff.complete_state:
@@ -411,14 +410,17 @@ async def main() -> None:
         else:
             buff.start_completion(insert_common_part=False)
 
-    @session_kb.add('escape')
+    @session_kb.add("escape")
     def _(event):
         buff = event.current_buffer
         if buff.complete_state:
             buff.cancel_completion()
 
-    session = PromptSession(completer=lib.CommandCompleter(),
-    key_bindings=session_kb, complete_while_typing=completion_filter)
+    session = PromptSession(
+        completer=lib.CommandCompleter(),
+        key_bindings=session_kb,
+        complete_while_typing=completion_filter,
+    )
     while True:
         next_prompt: str = ""
         with patch_stdout():

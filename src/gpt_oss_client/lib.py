@@ -474,14 +474,7 @@ class PrettyPrinter:
 class CommandCompleter(Completer):
     def __init__(self):
         super().__init__()
-        self.commands = [
-            'quit',
-            'exit',
-            'edit',
-            'clear',
-            'cd',
-            'pwd'
-        ]
+        self.commands = ["quit", "exit", "edit", "clear", "cd", "pwd"]
 
     def get_completions(self, document, complete_event):
         if len(document.text) == 1 and document.text[0] == "/":
@@ -494,12 +487,14 @@ class CommandCompleter(Completer):
                 progress = document.text[1:]
                 matches = list(filter(lambda cmd: cmd == progress, self.commands))
                 if len(matches) == 0:
-                    for cmd in filter(lambda cmd: cmd.startswith(progress), self.commands):
-                        yield Completion(cmd[len(progress):], display=cmd)
+                    for cmd in filter(
+                        lambda cmd: cmd.startswith(progress), self.commands
+                    ):
+                        yield Completion(cmd[len(progress) :], display=cmd)
             else:
                 if document.text.startswith("/edit"):
                     # /edit s -> /edit src...
-                    args = document.text[len("/edit"):]
+                    args = document.text[len("/edit") :]
                     parent: Optional[Path] = None
                     p: Optional[Path] = None
                     progress = ""
@@ -523,15 +518,19 @@ class CommandCompleter(Completer):
                                 if child.name.startswith("."):
                                     continue
                                 if child.name.startswith(progress):
-                                    yield Completion(child.name[len(progress):], display=child.name)
+                                    yield Completion(
+                                        child.name[len(progress) :], display=child.name
+                                    )
                 if document.text.startswith("/cd"):
-                    args = document.text[len("/cd"):]
+                    args = document.text[len("/cd") :]
                     parent: Optional[Path] = None
                     p: Optional[Path] = None
                     progress = ""
                     p = Path(args.strip())
 
-                    if not args.rstrip().endswith(".") and not args.rstrip().endswith(".."):
+                    if not args.rstrip().endswith(".") and not args.rstrip().endswith(
+                        ".."
+                    ):
                         if not p.exists():
                             progress = p.name
                             parent = p.parent
@@ -547,7 +546,10 @@ class CommandCompleter(Completer):
                                     if child.name.startswith("."):
                                         continue
                                     if child.name.startswith(progress):
-                                        yield Completion(child.name[len(progress):], display=child.name)
+                                        yield Completion(
+                                            child.name[len(progress) :],
+                                            display=child.name,
+                                        )
 
 
 class ScrollableWindow(Window):
