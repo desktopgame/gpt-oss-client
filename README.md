@@ -1,6 +1,6 @@
 # gpt-oss-client
 
-gpt-oss-client is a dedicated LLM client for gpt-oss that features two modes: Chat mode and Edit mode.
+gpt-oss-client is a dedicated LLM client for gpt-oss that features two modes: Chat mode and Edit mode.  
 It also supports function calling.
 
 ## How to install
@@ -29,8 +29,10 @@ However, if a line starts with a slash (`/`), it is interpreted as a command. Th
 - `/pwd` – Show the current working directory.
 
 ### Edit mode
-In this mode you can edit text using an Emacs‑like UI, with shortcuts that mimic Emacs.
-The central text area is used for user input or for pasting LLM responses. Below it there is a one‑line label called the *mode line*, which displays the current operation and instructions for the user. Under that is another single‑line field known as the *mini‑buffer*; you type instructions for the LLM here. When you press **Enter**, the content of the mini‑buffer is sent to the LLM and its response is inserted into the text area.
+In this mode you can edit text using an Emacs‑like UI, with shortcuts that mimic Emacs.  
+The central text area is used for user input or for pasting LLM responses.  
+Below it there is a one‑line label called the *mode line*, which displays the current operation and instructions for the user.  
+Under that is another single‑line field known as the *mini‑buffer*; you type instructions for the LLM here. When you press **Enter**, the content of the mini‑buffer is sent to the LLM and its response is inserted into the text area.
 
 The following shortcut keys are available in Edit mode:
 
@@ -44,7 +46,8 @@ The following shortcut keys are available in Edit mode:
 - `F2` – Toggle preview ON/OFF (Markdown/LaTeX rendering).
 
 ## Configuration
-Place a configuration file in the directory where gpt‑oss‑client is started; the client will read it on launch. The basic settings are written in JSON.
+Place a configuration file in the directory where gpt‑oss‑client is started; the client will read it on launch.  
+The basic settings are written in JSON.
 
 **gpt-oss-client.json**
 ```json
