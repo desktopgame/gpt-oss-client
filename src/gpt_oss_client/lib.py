@@ -7,7 +7,7 @@ import io, re, functools
 from sympy.parsing.latex import parse_latex
 from sympy import pretty as sympy_pretty, sstr
 from openai import AsyncOpenAI
-from typing import Any, List, Dict, Callable
+from typing import Any, List, Dict, Callable, Optional
 from pathlib import Path
 from rich.console import Console
 from rich.markdown import Markdown
@@ -495,10 +495,13 @@ class CommandCompleter(Completer):
             else:
                 if document.text.startswith("/edit"):
                     args = document.text[len("/edit"):]
+                    p: Optional[Path] = None
                     if len(args.strip()) == 0:
                         p = Path(os.getcwd())
-                        for child in p.iterdir():
-                            yield Completion(child.name, start_position=0)
+                    else:
+                        p = Path(args.strip())
+                    for child in p.iterdir():
+                        yield Completion(child.name, start_position=0)
 
 
 class ScrollableWindow(Window):
