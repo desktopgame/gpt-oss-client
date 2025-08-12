@@ -8,22 +8,12 @@ from typing import Any, List, Dict, Callable
 from pathlib import Path
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import FilterOrBool
-from prompt_toolkit.filters.utils import to_filter
-from prompt_toolkit.formatted_text import split_lines, StyleAndTextTuples
-from prompt_toolkit.application.current import get_app
-from prompt_toolkit.application import Application
-from prompt_toolkit.buffer import Buffer
-from prompt_toolkit.buffer import Buffer
-from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.layout.screen import Screen, _CHAR_CACHE, WritePosition
-from prompt_toolkit.layout import Layout, HSplit, Window, UIContent, WindowAlign, Margin, ColorColumn
+from prompt_toolkit.layout import Window, UIContent, WindowAlign, ColorColumn
 from prompt_toolkit.layout.controls import UIControl
-from prompt_toolkit.layout.containers import ConditionalContainer, ScrollOffsets
-from prompt_toolkit.layout.margins import ScrollbarMargin
+from prompt_toolkit.layout.containers import ScrollOffsets
 from prompt_toolkit.layout.dimension import AnyDimension
-from prompt_toolkit.formatted_text import ANSI
-from prompt_toolkit.styles import Style
-from prompt_toolkit.widgets import TextArea
 
 class Config:
     def __init__(self):
