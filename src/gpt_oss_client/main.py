@@ -1,12 +1,5 @@
 import asyncio
-import json
 import sys
-import io, re, functools
-import types
-from rich.console import Console
-from rich.markdown import Markdown
-from sympy.parsing.latex import parse_latex
-from sympy import pretty as sympy_pretty, sstr
 from openai import AsyncOpenAI
 from typing import Dict, Any, Callable
 from halo import Halo
@@ -51,78 +44,11 @@ spinner_load = Halo(text="Loading", spinner="dots")
 spinner_llm = Halo(text="Thinking", spinner="dots")
 spinner_mcp = Halo(text="Running", spinner="dots")
 
-console = Console(color_system="truecolor")
-
-FENCE_RE    = re.compile(r"```.*?```", re.DOTALL)
-INLINECODE  = re.compile(r"`[^`\n]*`")                   # インラインコード
-BLOCK_RE    = re.compile(r"\$\$(.+?)\$\$", re.DOTALL)    # $$ ... $$
-INLINE_RE   = re.compile(r"(?<!\$)\$(.+?)\$(?!\$)", re.DOTALL)  # \$ は対象外
-
 edit_mode = False
 marker_id = 0
 chat_lock = False
 is_view_mode = [False]
 view_at = Point(0, 0)
-
-
-@functools.lru_cache(maxsize=512)
-def _latex_block_to_ascii(src: str) -> str:
-    try:
-        expr = parse_latex(src)
-        # 罫線アートを壊さないためにラップ禁止 & 十分な幅を確保
-        return sympy_pretty(expr, use_unicode=True, wrap_line=False, num_columns=9999)
-    except Exception:
-        return src  # 失敗は原文
-
-@functools.lru_cache(maxsize=1024)
-def _latex_inline_to_single(src: str) -> str:
-    try:
-        expr = parse_latex(src)
-        # インラインは1行表現が崩れにくい（a^2, 1/x**2 など）
-        return sstr(expr)
-    except Exception:
-        return src
-
-def _stash_regions(text: str, patterns):
-    holes = []
-    def stash(m):
-        holes.append(m.group(0))
-        return f"⟪HOLE#{len(holes)-1}⟫"
-    for pat in patterns:
-        text = pat.sub(stash, text)
-    return text, holes
-
-def _unstash(text: str, holes):
-    def putback(m): return holes[int(m.group(1))]
-    return re.sub(r"⟪HOLE#(\d+)⟫", putback, text)
-
-def render_markdown_and_latex(text: str) -> str:
-    # 1) コード領域は退避（数式置換の対象外）
-    stashed, holes = _stash_regions(text, [FENCE_RE, INLINECODE])
-
-    # 2) LaTeX置換：ブロック→インラインの順
-    def rep_block(m):
-        body = m.group(1).strip()
-        pretty = _latex_block_to_ascii(body)
-        # コードフェンスで包んで Rich の整形・折返しを止める
-        return "\n```text\n" + pretty + "\n```\n"
-
-    def rep_inline(m):
-        body = m.group(1).strip()
-        return _latex_inline_to_single(body)
-
-    stashed = BLOCK_RE.sub(rep_block, stashed)
-    stashed = INLINE_RE.sub(rep_inline, stashed)
-
-    # 3) 退避を戻す
-    mixed = _unstash(stashed, holes)
-
-    # 4) Markdown → ANSI
-    buf = io.StringIO()
-    console.file = buf
-    console.print(Markdown(mixed), end="")  # code block内は等幅で崩れにくい
-    console.file = None
-    return buf.getvalue()
 
 
 async def main() -> None:
@@ -317,7 +243,8 @@ async def main() -> None:
         global view_at
         is_view_mode[0] = not is_view_mode[0]
         if is_view_mode[0]:
-            view.text = ANSI(render_markdown_and_latex(editor.buffer.text))
+            pp = lib.PrettyPrinter()
+            view.text = ANSI(pp.render_markdown_and_latex(editor.buffer.text))
             view_at = Point(0, 0)
             e.app.layout.focus(view)
         else:
