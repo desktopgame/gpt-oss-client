@@ -25,10 +25,6 @@ from prompt_toolkit.layout.controls import FormattedTextControl, BufferControl, 
 from prompt_toolkit.layout.containers import ConditionalContainer, ScrollOffsets
 from prompt_toolkit.layout.margins import ScrollbarMargin
 from prompt_toolkit.layout.dimension import Dimension as D
-from prompt_toolkit.key_binding.bindings.scroll import (
-    scroll_one_line_down, scroll_one_line_up,
-    scroll_page_down, scroll_page_up,
-)
 from prompt_toolkit.formatted_text import ANSI
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import TextArea
@@ -167,22 +163,15 @@ async def main() -> None:
 
     @view_kb.add('up')
     def _(e):
-        # view_window._scroll_up()
-        # if view_window.vertical_scroll > 0:
-        #     view_window.vertical_scroll -= 1
-        # scroll_one_line_up(e)
         global view_at
         if is_view_mode[0]:
             y = view_at.y - 1
             if y < 0:
                 y = 0
             view_at = Point(view_at.x, y)
+
     @view_kb.add('down')
     def _(e):
-        # if view_window.vertical_scroll < view_window.height:
-        # view_window.vertical_scroll += 1
-        # view_window._scroll_down()
-        # scroll_one_line_down(e)
         global view_at
         if is_view_mode[0]:
             y = view_at.y + 1
