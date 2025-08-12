@@ -472,6 +472,8 @@ async def main() -> None:
                         os.chdir(args[0])
                     except Exception:
                         pass
+            elif command == "pwd":
+                print(os.getcwd())
         # await chat_manager.post(next_prompt)
 
     modequeue.shutdown()

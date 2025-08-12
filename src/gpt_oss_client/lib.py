@@ -479,7 +479,8 @@ class CommandCompleter(Completer):
             'exit',
             'edit',
             'clear',
-            'cd'
+            'cd',
+            'pwd'
         ]
 
     def get_completions(self, document, complete_event):
