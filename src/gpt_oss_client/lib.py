@@ -492,6 +492,13 @@ class CommandCompleter(Completer):
                 if len(matches) == 0:
                     for cmd in filter(lambda cmd: cmd.startswith(progress), self.commands):
                         yield Completion(cmd[len(progress):], display=cmd)
+            else:
+                if document.text.startswith("/edit"):
+                    args = document.text[len("/edit"):]
+                    if len(args.strip()) == 0:
+                        p = Path(os.getcwd())
+                        for child in p.iterdir():
+                            yield Completion(child.name, start_position=0)
 
 
 class ScrollableWindow(Window):
