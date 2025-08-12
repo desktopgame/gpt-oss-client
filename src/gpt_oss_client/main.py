@@ -1,5 +1,5 @@
 import asyncio
-import sys
+import os
 from openai import AsyncOpenAI
 from typing import Dict, Any, Optional
 from halo import Halo
@@ -466,6 +466,12 @@ async def main() -> None:
             elif command == "clear":
                 chat_manager.clear()
                 continue
+            elif command == "cd":
+                if len(args) > 0:
+                    try:
+                        os.chdir(args[0])
+                    except Exception:
+                        pass
         # await chat_manager.post(next_prompt)
 
     modequeue.shutdown()
