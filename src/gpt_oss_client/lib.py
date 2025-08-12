@@ -476,7 +476,11 @@ class CommandCompleter(Completer):
         super().__init__()
 
     def get_completions(self, document, complete_event):
-        yield Completion("completion", start_position=0)
+        if len(document.text) == 1 and document.text[0] == "/":
+            yield Completion("quit", start_position=0)
+            yield Completion("exit", start_position=0)
+            yield Completion("edit", start_position=0)
+            yield Completion("clear", start_position=0)
 
 
 class ScrollableWindow(Window):
