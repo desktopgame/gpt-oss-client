@@ -512,10 +512,11 @@ class CommandCompleter(Completer):
                             parent = p.parent
                             p = None
                     if p is not None:
-                        for child in p.iterdir():
-                            if child.name.startswith("."):
-                                continue
-                            yield Completion(child.name, start_position=0)
+                        if p.is_dir():
+                            for child in p.iterdir():
+                                if child.name.startswith("."):
+                                    continue
+                                yield Completion(child.name, start_position=0)
                     else:
                         if parent is not None and parent.exists():
                             for child in parent.iterdir():
@@ -540,10 +541,11 @@ class CommandCompleter(Completer):
                             parent = p.parent
                             p = None
                         if p is not None:
-                            for child in p.iterdir():
-                                if child.name.startswith("."):
-                                    continue
-                                yield Completion(child.name, start_position=0)
+                            if p.is_dir():
+                                for child in p.iterdir():
+                                    if child.name.startswith("."):
+                                        continue
+                                    yield Completion(child.name, start_position=0)
                         else:
                             if parent is not None and parent.exists():
                                 for child in parent.iterdir():
