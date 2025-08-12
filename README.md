@@ -89,6 +89,16 @@ gpt-oss-client.json
     "base_url": "http://localhost:1234/v1",
     "model": "openai/gpt-oss-20b",
     "auto_approve": false,
+    "allow_tools": [
+        "read_file",
+        "read_text_file",
+        "list_directory",
+        "list_directory_with_sizes",
+        "directory_tree",
+        "search_files",
+        "get_file_info",
+        "list_allowed_directories"
+    ],
     "context_length": 15000
 }
 ```
