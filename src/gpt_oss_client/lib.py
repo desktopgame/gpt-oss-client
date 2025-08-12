@@ -543,12 +543,16 @@ class CommandCompleter(Completer):
                         if p is not None:
                             if p.is_dir():
                                 for child in p.iterdir():
+                                    if not child.is_dir():
+                                        continue
                                     if child.name.startswith("."):
                                         continue
                                     yield Completion(child.name, start_position=0)
                         else:
                             if parent is not None and parent.exists():
                                 for child in parent.iterdir():
+                                    if not child.is_dir():
+                                        continue
                                     if child.name.startswith("."):
                                         continue
                                     if child.name.startswith(progress):
