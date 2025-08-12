@@ -483,10 +483,12 @@ class CommandCompleter(Completer):
 
     def get_completions(self, document, complete_event):
         if len(document.text) == 1 and document.text[0] == "/":
+            # / -> /quit, /exit, /edit, /clear...
             for cmd in self.commands:
                 yield Completion(cmd, start_position=0)
         elif document.text.startswith("/"):
             if " " not in document.text:
+                # /q -> /quit, /ed -> /edit...
                 progress = document.text[1:]
                 matches = list(filter(lambda cmd: cmd == progress, self.commands))
                 if len(matches) == 0:
@@ -494,6 +496,7 @@ class CommandCompleter(Completer):
                         yield Completion(cmd[len(progress):], display=cmd)
             else:
                 if document.text.startswith("/edit"):
+                    # /edit s -> /edit src...
                     args = document.text[len("/edit"):]
                     parent: Optional[Path] = None
                     p: Optional[Path] = None
