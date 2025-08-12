@@ -474,13 +474,24 @@ class PrettyPrinter:
 class CommandCompleter(Completer):
     def __init__(self):
         super().__init__()
+        self.commands = [
+            'quit',
+            'exit',
+            'edit',
+            'clear'
+        ]
 
     def get_completions(self, document, complete_event):
         if len(document.text) == 1 and document.text[0] == "/":
-            yield Completion("quit", start_position=0)
-            yield Completion("exit", start_position=0)
-            yield Completion("edit", start_position=0)
-            yield Completion("clear", start_position=0)
+            for cmd in self.commands:
+                yield Completion(cmd, start_position=0)
+        elif document.text.startswith("/"):
+            if " " not in document.text:
+                progress = document.text[1:]
+                matches = list(filter(lambda cmd: cmd == progress, self.commands))
+                if len(matches) == 0:
+                    for cmd in filter(lambda cmd: cmd.startswith(progress), self.commands):
+                        yield Completion(cmd[len(progress):], display=cmd)
 
 
 class ScrollableWindow(Window):
