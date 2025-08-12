@@ -1,5 +1,7 @@
 # gpt-oss-client
 
+[日本語](README-ja_jp.md)
+
 gpt-oss-client is a dedicated LLM client for gpt-oss that features two modes: Chat mode and Edit mode.  
 It also supports function calling.
 
