@@ -478,7 +478,8 @@ class CommandCompleter(Completer):
             'quit',
             'exit',
             'edit',
-            'clear'
+            'clear',
+            'cd'
         ]
 
     def get_completions(self, document, complete_event):
@@ -522,6 +523,30 @@ class CommandCompleter(Completer):
                                     continue
                                 if child.name.startswith(progress):
                                     yield Completion(child.name[len(progress):], display=child.name)
+                if document.text.startswith("/cd"):
+                    args = document.text[len("/cd"):]
+                    parent: Optional[Path] = None
+                    p: Optional[Path] = None
+                    progress = ""
+                    p = Path(args.strip())
+
+                    if not args.rstrip().endswith(".") and not args.rstrip().endswith(".."):
+                        if not p.exists():
+                            progress = p.name
+                            parent = p.parent
+                            p = None
+                        if p is not None:
+                            for child in p.iterdir():
+                                if child.name.startswith("."):
+                                    continue
+                                yield Completion(child.name, start_position=0)
+                        else:
+                            if parent is not None and parent.exists():
+                                for child in parent.iterdir():
+                                    if child.name.startswith("."):
+                                        continue
+                                    if child.name.startswith(progress):
+                                        yield Completion(child.name[len(progress):], display=child.name)
 
 
 class ScrollableWindow(Window):
