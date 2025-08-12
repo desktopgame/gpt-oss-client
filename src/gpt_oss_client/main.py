@@ -169,10 +169,11 @@ async def main() -> None:
     # init chat system
 
     mcp_clients: Dict[str, lib.McpClient] = {}
-    for name, server in mcp_config["mcpServers"].items():
-        mcp_client = lib.McpClient(server)
-        mcp_clients[name] = mcp_client
-        await mcp_client.start()
+    if "mcpServers" in mcp_config:
+        for name, server in mcp_config["mcpServers"].items():
+            mcp_client = lib.McpClient(server)
+            mcp_clients[name] = mcp_client
+            await mcp_client.start()
 
     chat_manager = lib.ChatManager(
         client,
