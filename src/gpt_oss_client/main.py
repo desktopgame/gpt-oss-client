@@ -382,9 +382,9 @@ async def main() -> None:
 
     # start
 
-    # spinner_load.start()
-    # await chat_manager.setup()
-    # spinner_load.stop()
+    spinner_load.start()
+    await chat_manager.setup()
+    spinner_load.stop()
 
     session_kb = KeyBindings()
     completion_filter = Condition(lambda: completable)
