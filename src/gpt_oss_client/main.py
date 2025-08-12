@@ -41,6 +41,7 @@ api_key = config.api_key
 base_url = config.base_url
 model = config.model
 auto_approve = config.auto_approve
+allow_tools = config.allow_tools
 context_length = config.context_length
 system_prompt = config.system_prompt
 mcp_config = config.mcp
@@ -175,7 +176,7 @@ async def main() -> None:
         await mcp_client.start()
 
     chat_manager = lib.ChatManager(
-        client, model, system_prompt, context_length, mcp_clients, auto_approve
+        client, model, system_prompt, context_length, mcp_clients, auto_approve, allow_tools
     )
 
     # init editor
