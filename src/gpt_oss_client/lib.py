@@ -495,13 +495,26 @@ class CommandCompleter(Completer):
             else:
                 if document.text.startswith("/edit"):
                     args = document.text[len("/edit"):]
+                    parent: Optional[Path] = None
                     p: Optional[Path] = None
+                    progress = ""
                     if len(args.strip()) == 0:
                         p = Path(os.getcwd())
                     else:
                         p = Path(args.strip())
-                    for child in p.iterdir():
-                        yield Completion(child.name, start_position=0)
+
+                        if not p.exists():
+                            progress = p.name
+                            parent = p.parent
+                            p = None
+                    if p is not None:
+                        for child in p.iterdir():
+                            yield Completion(child.name, start_position=0)
+                    else:
+                        if parent is not None and parent.exists():
+                            for child in parent.iterdir():
+                                if child.name.startswith(progress):
+                                    yield Completion(child.name[len(progress):], display=child.name)
 
 
 class ScrollableWindow(Window):
