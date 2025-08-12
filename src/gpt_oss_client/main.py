@@ -389,7 +389,7 @@ async def main() -> None:
     session_kb = KeyBindings()
     completion_filter = Condition(lambda: completable)
 
-    @session_kb.add('enter')
+    @session_kb.add('enter', filter=has_completions)
     def _(event):
         """タブキーで補完候補を挿入（補完メニューは閉じない）"""
         global completable
