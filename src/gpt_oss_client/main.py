@@ -1,7 +1,7 @@
 import asyncio
 import sys
 from openai import AsyncOpenAI
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Optional
 from halo import Halo
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
@@ -53,6 +53,7 @@ marker_id = 0
 chat_lock = False
 is_view_mode = [False]
 view_at = Point(0, 0)
+view_lines: Optional[int] = None
 
 
 async def main() -> None:
@@ -60,6 +61,7 @@ async def main() -> None:
     global marker_id
     global chat_lock
     global view_at
+    global view_lines
 
     # init common
 
@@ -103,11 +105,13 @@ async def main() -> None:
     @view_kb.add("down")
     def _(e):
         global view_at
+        global view_lines
         if is_view_mode[0]:
             y = view_at.y + 1
-            h = len(list(split_lines(view._get_formatted_text_cached())))
-            if y >= h:
-                y = h - 1
+            if view_lines is None:
+                view_lines = len(list(split_lines(view._get_formatted_text_cached())))
+            if y >= view_lines:
+                y = view_lines - 1
             view_at = Point(view_at.x, y)
 
     view = FormattedTextControl(
@@ -404,6 +408,12 @@ async def main() -> None:
                 send_mode(
                     {"text": "Please feel free to ask us anything.", "duration": 1}
                 )
+
+                # reset state
+                is_view_mode[0] = False
+                view_lines = None
+
+                # start edit mode
                 edit_mode = True
                 await app.run_async()
                 edit_mode = False
