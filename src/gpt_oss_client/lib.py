@@ -11,6 +11,8 @@ from typing import Any, List, Dict, Callable
 from pathlib import Path
 from rich.console import Console
 from rich.markdown import Markdown
+from prompt_toolkit import prompt
+from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import FilterOrBool
 from prompt_toolkit.formatted_text import StyleAndTextTuples
@@ -467,6 +469,14 @@ class PrettyPrinter:
         self.console.print(Markdown(mixed), end="")
         self.console.file = None
         return buf.getvalue()
+
+
+class CommandCompleter(Completer):
+    def __init__(self):
+        super().__init__()
+
+    def get_completions(self, document, complete_event):
+        yield Completion("completion", start_position=0)
 
 
 class ScrollableWindow(Window):

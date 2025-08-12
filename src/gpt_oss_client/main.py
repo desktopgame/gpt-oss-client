@@ -3,8 +3,11 @@ import sys
 from openai import AsyncOpenAI
 from typing import Dict, Any, Optional
 from halo import Halo
+from prompt_toolkit import prompt, PromptSession
+from prompt_toolkit.shortcuts import CompleteStyle
+from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.data_structures import Point
-from prompt_toolkit.filters import Condition
+from prompt_toolkit.filters import Condition, has_completions
 from prompt_toolkit.filters.utils import to_filter
 from prompt_toolkit.formatted_text import split_lines, StyleAndTextTuples
 from prompt_toolkit.application.current import get_app
@@ -52,6 +55,7 @@ edit_mode = False
 marker_id = 0
 chat_lock = False
 is_view_mode = [False]
+completable = True
 view_at = Point(0, 0)
 view_lines: Optional[int] = None
 
@@ -62,6 +66,7 @@ async def main() -> None:
     global chat_lock
     global view_at
     global view_lines
+    global completable
 
     # init common
 
@@ -377,12 +382,54 @@ async def main() -> None:
 
     # start
 
-    spinner_load.start()
-    await chat_manager.setup()
-    spinner_load.stop()
+    # spinner_load.start()
+    # await chat_manager.setup()
+    # spinner_load.stop()
 
+    session_kb = KeyBindings()
+    completion_filter = Condition(lambda: completable)
+
+    @session_kb.add('enter')
+    def _(event):
+        """タブキーで補完候補を挿入（補完メニューは閉じない）"""
+        global completable
+        buff = event.current_buffer
+        if buff.complete_state:
+            # 現在の補完候補を適用
+            completion = buff.complete_state.current_completion
+            if completion:
+                # 補完を適用するが、補完状態は維持
+                # buff.delete_before_cursor(-completion.start_position)
+                # buff.insert_text(completion.text)
+                completable = False
+                buff.apply_completion(completion)
+                buff.complete_state = None
+                event.app.invalidate()
+                completable = True
+
+
+    @session_kb.add('tab')
+    def _(event):
+        """タブキーで補完候補を循環"""
+        buff = event.current_buffer
+        if buff.complete_state:
+            buff.complete_next()
+        else:
+            buff.start_completion(insert_common_part=False)
+
+    @session_kb.add('escape')
+    def _(event):
+        """Escapeキーで補完をキャンセル"""
+        buff = event.current_buffer
+        if buff.complete_state:
+            buff.cancel_completion()
+
+    session = PromptSession(completer=lib.CommandCompleter(),
+    key_bindings=session_kb, complete_while_typing=completion_filter)
     while True:
-        next_prompt = sys.stdin.readline().rstrip()
+        next_prompt: str = ""
+        with patch_stdout():
+            next_prompt = await session.prompt_async()
         if next_prompt.startswith("/"):
             command_with_args = next_prompt[1:].rstrip().split(" ")
             command = command_with_args[0]
@@ -426,7 +473,7 @@ async def main() -> None:
             elif command == "clear":
                 chat_manager.clear()
                 continue
-        await chat_manager.post(next_prompt)
+        # await chat_manager.post(next_prompt)
 
     modequeue.shutdown()
 
