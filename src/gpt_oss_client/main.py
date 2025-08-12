@@ -412,6 +412,7 @@ async def main() -> None:
                 # reset state
                 is_view_mode[0] = False
                 view_lines = None
+                app.layout.focus(editor)
 
                 # start edit mode
                 edit_mode = True
