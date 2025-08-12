@@ -518,7 +518,7 @@ async def main() -> None:
                         pass
             elif command == "pwd":
                 print(os.getcwd())
-        # await chat_manager.post(next_prompt)
+        await chat_manager.post(next_prompt)
 
     modequeue.shutdown()
 
