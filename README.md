@@ -36,6 +36,12 @@ gpt-oss-client
 /clear  
 会話履歴をクリアします。
 
+/cd  
+任意のディレクトリに移動します。
+
+/pwd  
+現在のディレクトリを表示します。
+
 ### Edit mode
 このモードでは、emacs ライクなUIでテキストを編集できます。  
 ショートカットも emacs を模倣しています。
@@ -64,6 +70,9 @@ Ctrl+X Ctrl+X
 
 Ctrl+G  
 ミニバッファをクリア
+
+F2  
+プレビューのON/OFFを切り替える（Markdown/Latexがレンダリングされます）
 
 ## Configuration
 gpt-oss-client が起動されるディレクトリに設定ファイルを置くことでそちらを読んで動作します。  
