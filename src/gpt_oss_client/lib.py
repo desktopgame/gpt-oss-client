@@ -20,6 +20,7 @@ from prompt_toolkit.layout.controls import UIControl
 from prompt_toolkit.layout.containers import ScrollOffsets
 from prompt_toolkit.layout.dimension import AnyDimension
 
+
 class Config:
     def __init__(self):
         self.api_key = "lmstudio"
@@ -404,17 +405,19 @@ class PrettyPrinter:
     def __init__(self):
         self.console = Console(color_system="truecolor")
 
-        self.FENCE_RE    = re.compile(r"```.*?```", re.DOTALL)
-        self.INLINECODE  = re.compile(r"`[^`\n]*`")                   # インラインコード
-        self.BLOCK_RE    = re.compile(r"\$\$(.+?)\$\$", re.DOTALL)    # $$ ... $$
-        self.INLINE_RE   = re.compile(r"(?<!\$)\$(.+?)\$(?!\$)", re.DOTALL)  # \$ は対象外
+        self.FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
+        self.INLINECODE = re.compile(r"`[^`\n]*`")  # インラインコード
+        self.BLOCK_RE = re.compile(r"\$\$(.+?)\$\$", re.DOTALL)  # $$ ... $$
+        self.INLINE_RE = re.compile(r"(?<!\$)\$(.+?)\$(?!\$)", re.DOTALL)  # \$ は対象外
 
     @functools.lru_cache(maxsize=512)
     def _latex_block_to_ascii(self, src: str) -> str:
         try:
             expr = parse_latex(src)
             # 罫線アートを壊さないためにラップ禁止 & 十分な幅を確保
-            return sympy_pretty(expr, use_unicode=True, wrap_line=False, num_columns=9999)
+            return sympy_pretty(
+                expr, use_unicode=True, wrap_line=False, num_columns=9999
+            )
         except Exception:
             return src  # 失敗は原文
 
@@ -429,15 +432,19 @@ class PrettyPrinter:
 
     def _stash_regions(self, text: str, patterns):
         holes = []
+
         def stash(m):
             holes.append(m.group(0))
-            return f"⟪HOLE#{len(holes)-1}⟫"
+            return f"⟪HOLE#{len(holes) - 1}⟫"
+
         for pat in patterns:
             text = pat.sub(stash, text)
         return text, holes
 
     def _unstash(self, text: str, holes):
-        def putback(m): return holes[int(m.group(1))]
+        def putback(m):
+            return holes[int(m.group(1))]
+
         return re.sub(r"⟪HOLE#(\d+)⟫", putback, text)
 
     def render_markdown_and_latex(self, text: str) -> str:
@@ -498,12 +505,37 @@ class ScrollableWindow(Window):
         char: None | str | Callable[[], str] = None,
         get_line_prefix: Any | None = None,
     ) -> None:
-        super().__init__(content,width,height,z_index,dont_extend_width,dont_extend_height,ignore_content_width,ignore_content_height,left_margins,right_margins,scroll_offsets,allow_scroll_beyond_bottom,wrap_lines, get_vertical_scroll, get_horizontal_scroll, always_hide_cursor, cursorline, cursorcolumn,colorcolumns, align,style, char, get_line_prefix)
+        super().__init__(
+            content,
+            width,
+            height,
+            z_index,
+            dont_extend_width,
+            dont_extend_height,
+            ignore_content_width,
+            ignore_content_height,
+            left_margins,
+            right_margins,
+            scroll_offsets,
+            allow_scroll_beyond_bottom,
+            wrap_lines,
+            get_vertical_scroll,
+            get_horizontal_scroll,
+            always_hide_cursor,
+            cursorline,
+            cursorcolumn,
+            colorcolumns,
+            align,
+            style,
+            char,
+            get_line_prefix,
+        )
 
     # original code is here: https://github.com/prompt-toolkit/python-prompt-toolkit
     # license: BSD
 
-    def _copy_body(self,
+    def _copy_body(
+        self,
         ui_content: UIContent,
         new_screen: Screen,
         write_position: WritePosition,
@@ -517,7 +549,8 @@ class ScrollableWindow(Window):
         always_hide_cursor: bool = False,
         has_focus: bool = False,
         align: WindowAlign = WindowAlign.LEFT,
-        get_line_prefix: Callable[[int, int], Any] | None = None,):
+        get_line_prefix: Callable[[int, int], Any] | None = None,
+    ):
         """
         Copy the UIContent into the output screen.
         Return (visible_line_to_row_col, rowcol_to_yx) tuple.

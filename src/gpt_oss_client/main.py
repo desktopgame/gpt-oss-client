@@ -14,7 +14,11 @@ from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout.screen import Screen, _CHAR_CACHE, WritePosition
 from prompt_toolkit.layout import Layout, HSplit, Window, UIContent, WindowAlign
-from prompt_toolkit.layout.controls import FormattedTextControl, BufferControl, FormattedTextControl
+from prompt_toolkit.layout.controls import (
+    FormattedTextControl,
+    BufferControl,
+    FormattedTextControl,
+)
 from prompt_toolkit.layout.containers import ConditionalContainer, ScrollOffsets
 from prompt_toolkit.layout.margins import ScrollbarMargin
 from prompt_toolkit.layout.dimension import Dimension as D
@@ -87,7 +91,7 @@ async def main() -> None:
     view: FormattedTextControl = None
     view_window: Window = None
 
-    @view_kb.add('up')
+    @view_kb.add("up")
     def _(e):
         global view_at
         if is_view_mode[0]:
@@ -96,7 +100,7 @@ async def main() -> None:
                 y = 0
             view_at = Point(view_at.x, y)
 
-    @view_kb.add('down')
+    @view_kb.add("down")
     def _(e):
         global view_at
         if is_view_mode[0]:
@@ -106,14 +110,19 @@ async def main() -> None:
                 y = h - 1
             view_at = Point(view_at.x, y)
 
-    view = FormattedTextControl(focusable=True, show_cursor=True, key_bindings=view_kb,
-    get_cursor_position=lambda: view_at)
+    view = FormattedTextControl(
+        focusable=True,
+        show_cursor=True,
+        key_bindings=view_kb,
+        get_cursor_position=lambda: view_at,
+    )
     view_window = lib.ScrollableWindow(
-    content=view,
-    wrap_lines=False,                    
-    right_margins=[ScrollbarMargin()],   
-    height=D(weight=1),
-    cursorline=True)
+        content=view,
+        wrap_lines=False,
+        right_margins=[ScrollbarMargin()],
+        height=D(weight=1),
+        cursorline=True,
+    )
 
     workspace = HSplit(
         [
@@ -124,13 +133,11 @@ async def main() -> None:
     )
 
     edit_container = ConditionalContainer(
-        content=workspace,
-        filter=Condition(lambda: not is_view_mode[0])
+        content=workspace, filter=Condition(lambda: not is_view_mode[0])
     )
 
     view_container = ConditionalContainer(
-        content=view_window,
-        filter=Condition(lambda: is_view_mode[0])
+        content=view_window, filter=Condition(lambda: is_view_mode[0])
     )
 
     def send_mode(mode: Any):
@@ -251,13 +258,18 @@ async def main() -> None:
             e.app.layout.focus(editor)
         e.app.invalidate()
 
-    root = HSplit([
-        edit_container,
-        view_container,
-    ])
+    root = HSplit(
+        [
+            edit_container,
+            view_container,
+        ]
+    )
     app = Application(
-        layout=Layout(root), key_bindings=kb, full_screen=True, style=style,
-                  mouse_support=True
+        layout=Layout(root),
+        key_bindings=kb,
+        full_screen=True,
+        style=style,
+        mouse_support=True,
     )
 
     # setup
