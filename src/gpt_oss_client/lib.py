@@ -480,7 +480,12 @@ class CommandCompleter(Completer):
         super().__init__()
         self.commands = ["quit", "exit", "edit", "clear", "cd", "pwd"]
 
+
     def get_completions(self, document, complete_event):
+        if document.cursor_position == len(document.text):
+            yield from self.__get_completions(document, complete_event)
+
+    def __get_completions(self, document, complete_event):
         if len(document.text) == 1 and document.text[0] == "/":
             # / -> /quit, /exit, /edit, /clear...
             for cmd in self.commands:
