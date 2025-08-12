@@ -88,7 +88,6 @@ gpt-oss-client.json
     "api_key": "1234",
     "base_url": "http://localhost:1234/v1",
     "model": "openai/gpt-oss-20b",
-    "auto_approve": false,
     "allow_tools": [
         "read_file",
         "read_text_file",

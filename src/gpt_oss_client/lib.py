@@ -31,7 +31,6 @@ class Config:
         self.api_key = "lmstudio"
         self.base_url = "http://localhost:1234/v1"
         self.model = "openai/gpt-oss-120b"
-        self.auto_approve = False
         self.allow_tools = []
         self.context_length = 0
         self.system_prompt = "あなたは日本語で話す親切なアシスタントです。"
@@ -66,8 +65,6 @@ class Config:
             self.base_url = config["base_url"]
         if "model" in config:
             self.model = config["model"]
-        if "auto_approve" in config:
-            self.auto_approve = config["auto_approve"]
         if "allow_tools" in config:
             self.allow_tools = config["allow_tools"]
         if "context_length" in config:
@@ -252,7 +249,6 @@ class ChatManager:
         system_prompt: str,
         context_length: int,
         mcp_clients: Dict[str, McpClient],
-        auto_approve: bool,
         allow_tools: List[str],
     ):
         self.open_ai = open_ai
@@ -260,7 +256,6 @@ class ChatManager:
         self.system_prompt = system_prompt
         self.context_length = context_length
         self.mcp_clients = mcp_clients
-        self.auto_approve = auto_approve
         self.allow_tools = allow_tools
         self.input_list = []
         self.tools = []
@@ -364,7 +359,7 @@ class ChatManager:
                 target_client = self.tool2client[fn.name]
 
                 confirm_result = "y"
-                if not self.auto_approve and fn.name not in self.allow_tools:
+                if fn.name not in self.allow_tools:
                     confirm_result = (await self.handle_use_proc(fn.name)).lower()  # noqa
                 if confirm_result == "y" or confirm_result == "yes":
                     self.handle_mcp_proc("begin")

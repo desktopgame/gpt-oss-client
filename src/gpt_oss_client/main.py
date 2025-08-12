@@ -40,7 +40,6 @@ config.update()
 api_key = config.api_key
 base_url = config.base_url
 model = config.model
-auto_approve = config.auto_approve
 allow_tools = config.allow_tools
 context_length = config.context_length
 system_prompt = config.system_prompt
@@ -181,7 +180,6 @@ async def main() -> None:
         system_prompt,
         context_length,
         mcp_clients,
-        auto_approve,
         allow_tools,
     )
 
