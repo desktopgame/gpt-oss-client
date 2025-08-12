@@ -518,13 +518,13 @@ class CommandCompleter(Completer):
                             parent = p.parent
                             p = None
                     if p is not None:
-                        if p.is_dir():
+                        if p.is_dir() and not p.name.endswith(" "):
                             for child in p.iterdir():
                                 if child.name.startswith("."):
                                     continue
                                 yield Completion(child.name, start_position=0)
                     else:
-                        if parent is not None and parent.exists():
+                        if parent is not None and parent.exists() and not parent.name.endswith(" "):
                             for child in parent.iterdir():
                                 if child.name.startswith("."):
                                     continue
@@ -537,17 +537,18 @@ class CommandCompleter(Completer):
                     parent: Optional[Path] = None
                     p: Optional[Path] = None
                     progress = ""
-                    p = Path(args.strip())
+                    pathstr: str = args.lstrip()
+                    p = Path(pathstr)
 
                     if not args.rstrip().endswith(".") and not args.rstrip().endswith(
                         ".."
                     ):
-                        if not p.exists():
+                        if not p.exists() or pathstr.endswith(" ") or not pathstr.endswith(os.path.sep):
                             progress = p.name
                             parent = p.parent
                             p = None
                         if p is not None:
-                            if p.is_dir():
+                            if p.is_dir() and not p.name.endswith(" "):
                                 for child in p.iterdir():
                                     if not child.is_dir():
                                         continue
@@ -555,7 +556,7 @@ class CommandCompleter(Completer):
                                         continue
                                     yield Completion(child.name, start_position=0)
                         else:
-                            if parent is not None and parent.exists():
+                            if parent is not None and parent.exists() and not parent.name.endswith(" "):
                                 for child in parent.iterdir():
                                     if not child.is_dir():
                                         continue
