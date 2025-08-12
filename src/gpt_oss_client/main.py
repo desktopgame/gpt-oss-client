@@ -472,6 +472,7 @@ async def main() -> None:
                 if len(args) > 0:
                     try:
                         os.chdir(args[0])
+                        config.update()
                     except Exception:
                         pass
             elif command == "pwd":
