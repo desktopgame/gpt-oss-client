@@ -25,6 +25,9 @@ from prompt_toolkit.layout.dimension import AnyDimension
 
 class Config:
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.api_key = "lmstudio"
         self.base_url = "http://localhost:1234/v1"
         self.model = "openai/gpt-oss-120b"
@@ -34,6 +37,7 @@ class Config:
         self.mcp = {}
 
     def update(self):
+        self.reset()
         self.__load("gpt-oss-client.json", self.__hook_basic)
         self.__load("system-prompt.txt", self.__hook_system_prompt)
         self.__load("system-prompt.md", self.__hook_system_prompt)
