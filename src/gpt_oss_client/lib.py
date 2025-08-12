@@ -510,9 +510,10 @@ class CommandCompleter(Completer):
                     if len(args.strip()) == 0:
                         p = Path(os.getcwd())
                     else:
-                        p = Path(args.strip())
+                        pathstr: str = args.lstrip()
+                        p = Path(pathstr)
 
-                        if not p.exists():
+                        if not p.exists() or pathstr.endswith(" ") or not pathstr.endswith(os.path.sep):
                             progress = p.name
                             parent = p.parent
                             p = None
