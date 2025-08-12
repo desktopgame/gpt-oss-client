@@ -215,6 +215,43 @@ async def main() -> None:
         editor.buffer.cursor_position = next_line_pos
         await chat_submit(text)
 
+    async def chat_submit_and_preview():
+        global chat_lock
+        global view_at
+        global view_lines
+        if is_view_mode[0]:
+            return
+
+        if chat_lock:
+            return
+        chat_lock = True
+
+        def handle(response):
+            global view_at
+            global view_lines
+            is_view_mode[0] = True
+            pp = lib.PrettyPrinter()
+            view.text = ANSI(pp.render_markdown_and_latex(response.choices[0].message.content))
+            view_at = Point(0, 0)
+            view_lines = None
+            get_app().layout.focus(view)
+            get_app().invalidate()
+
+            if context_length > 0:
+                tokens = chat_manager.token_count()
+                parcent = tokens / context_length
+                mode = {
+                    "text": f"# token usage: {tokens}/{context_length} {parcent:.2%}",
+                    "duration": 1,
+                }
+                send_mode(mode)
+
+        orig = chat_manager.handle_msg_proc
+        chat_manager.handle_msg_proc = handle
+        await chat_manager.post(editor.buffer.text)
+        chat_manager.handle_msg_proc = orig
+        chat_lock = False
+
     def accept_handler(buf: Buffer):
         message = buf.text
         if len(message.strip()) == 0:
@@ -248,6 +285,10 @@ async def main() -> None:
     @kb.add("c-x", "c-x")
     def _(e):
         asyncio.create_task(chat_submit(editor.buffer.document.current_line))  # noqa
+
+    @kb.add("c-x", "c-a")
+    def _(e):
+        asyncio.create_task(chat_submit_and_preview())  # noqa
 
     @kb.add("c-g")
     def _(e):
