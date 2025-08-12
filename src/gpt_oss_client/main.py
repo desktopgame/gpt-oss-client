@@ -176,7 +176,13 @@ async def main() -> None:
         await mcp_client.start()
 
     chat_manager = lib.ChatManager(
-        client, model, system_prompt, context_length, mcp_clients, auto_approve, allow_tools
+        client,
+        model,
+        system_prompt,
+        context_length,
+        mcp_clients,
+        auto_approve,
+        allow_tools,
     )
 
     # init editor
@@ -232,7 +238,9 @@ async def main() -> None:
             global view_lines
             is_view_mode[0] = True
             pp = lib.PrettyPrinter()
-            view.text = ANSI(pp.render_markdown_and_latex(response.choices[0].message.content))
+            view.text = ANSI(
+                pp.render_markdown_and_latex(response.choices[0].message.content)
+            )
             view_at = Point(0, 0)
             view_lines = None
             get_app().layout.focus(view)

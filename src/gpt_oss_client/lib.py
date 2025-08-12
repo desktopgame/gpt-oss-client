@@ -253,7 +253,7 @@ class ChatManager:
         context_length: int,
         mcp_clients: Dict[str, McpClient],
         auto_approve: bool,
-        allow_tools: List[str]
+        allow_tools: List[str],
     ):
         self.open_ai = open_ai
         self.model = model
